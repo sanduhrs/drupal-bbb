@@ -46,17 +46,29 @@ function bbb_views_api() {
 }
 
 /**
- * Implement HOOK_perm().
+ * Implement HOOK_permission().
  */
-function bbb_perm() {
+function bbb_permission() {
   return array(
-    'administer big blue button',
-//TODO:
-//    'start meetings',
-//    'start own meetings',
-    'moderate meetings',
-    'moderate own meetings',
-    'attend meetings',
+    'administer big blue button' => array(
+      'title' => t('Administer BigBlueButton'),
+      'description' => t('Allow administration of BigBlueButton')  
+    ),
+  //TODO:
+  //    'start meetings',
+  //    'start own meetings',
+    'moderate meetings' => array(
+      'title' => t('Moderate meetings'),
+      'description' => t('Allow moderation of meetings')
+    ),
+    'moderate own meetings' => array(
+      'title' => t('Moderate own meetings'),
+      'description' => t('Allow moderation of own meetings')
+    ),
+    'attend meetings' => array(
+      'title' => t('Attend meetings'),
+      'description' => t('Allow following meetings as an attendee')
+    )
   );
 }
 
@@ -114,7 +126,7 @@ function bbb_menu() {
     'type' => MENU_CALLBACK,
     'file' => 'includes/api-' . BBB_API_VERSION . '.bbb.inc',
   );
-  $items['admin/settings/bigbluebutton'] = array(
+  $items['admin/config/media/bigbluebutton'] = array(
     'title' => 'Big Blue Button meetings',
     'description' => 'Default server and meeting settings.',
     'page callback' => 'drupal_get_form',
@@ -162,45 +174,47 @@ function bbb_access_moderator($node) {
 }
 
 /**
- * Implement HOOK_block().
+ * Implement HOOK_block_info
  */
-function bbb_block($op = 'list', $delta = 0, $edit = array()) {
-  if ($op == 'list') {
-    $blocks[0] = array(
-      'info' => t('Meeting details'),
-      'weight' => 0,
-      'status' => 1,
-      'region' => 'left'
-    );
-    return $blocks;
-  }
-  elseif ($op == 'configure' && $delta == 0) {
-  }
-  elseif ($op == 'save' && $delta == 0) {
-  }
-  elseif ($op == 'view') {
-    switch ($delta) {
-      case 0:
-        $block = array(
+
+function bbb_block_info() {
+  $blocks['bbb_login_meeting'] = array(
+      'info' => t('BBB Meeting details')
+  );
+  return $blocks;
+}
+
+/**
+ * Implement HOOK_block_view
+ */
+
+function bbb_block_view($delta = '') {
+  $block = '';
+  switch ($delta) {
+    case 'bbb_login_meeting':
+      $block = array(
           'subject' => t('Meeting details'),
-          'content' => bbb_block_meeting(),
-        );
-        break;
-    }
-    return $block;
+          'content' => bbb_block_meeting($delta),
+      );
+      break;
+    default:
+      break;
   }
+  return $block;
 }
 
 /**
  * Meeting details block
  */
-function bbb_block_meeting() {
+function bbb_block_meeting($delta) {
   $output = '';
-  if (arg(0) == 'node' && is_numeric(arg(1))) {
+  switch($delta) {
+    case 'bbb_login_meeting':
     $meeting = bbb_get_meeting(arg(1));
     if ($meeting) {
-      $output = theme('bbb_block_meeting', $meeting);
+        $output = theme('bbb_block_meeting', array('meeting' => $meeting));
     }
+      break;
   }
   return $output;
 }
@@ -278,7 +292,7 @@ function bbb_form_alter(&$form, &$form_state, $form_id) {
   }
 
   // Node edit form
-  $node_type = $form['type']['#value'];
+  $node_type = $form['#type']['#value'];
   if (drupal_substr($form_id, (drupal_strlen($form_id) - 10), 10) == '_node_form' &&
       bbb_is_meeting_type($node_type) &&
       user_access('administer big blue button')) {
@@ -338,49 +352,75 @@ function bbb_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /**
- * Implement HOOK_nodeapi().
+ * Implement HOOK_node_insert
  */
-function bbb_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  global $user;
+
+function bbb_node_insert($node) {
+  if (!bbb_is_meeting_type($node->type)) {
+    return;
+  }
+  bbb_store_meeting($node, (array) $node->bbb);
+}
+
+/**
+ * Implement HOOK_node_update
+ */
+
+function bbb_node_update($node) {
+  if (!bbb_is_meeting_type($node->type)) {
+    return;
+  }
+  bbb_update_meeting($node, $node->bbb);
+}
+
+/**
+ * Implement HOOK_node_view
+ */
+
+function bbb_node_view($node, $view_mode, $langcode) {
   if (!bbb_is_meeting_type($node->type)) {
     return;
   }
 
-  switch ($op) {
-    case 'insert':
-      // local storage
-      bbb_store_meeting($node, (array) $node->bbb);
-      break;
-    case 'update':
-      // local update
-      bbb_update_meeting($node, $node->bbb);
-      break;
-    case 'view':
-      //$status = bbb_get_user_status($node->nid, $user->uid);
+  //$status = bbb_get_user_status($node->nid, $user->uid);
 
-      if (!variable_get('bbb_content_type_show_status_' . $node->type, FALSE)) {
-        return;
-      }
-
-      $meeting = bbb_get_meeting($node->nid);
-      $node->content['bbb_meeting_status'] = array(
-        '#value' => theme('bbb_meeting_status', $meeting),
-        '#weight' => 10,
-      );
-      $node->content['bbb_meeting_start'] = array(
-        '#value' => theme('bbb_meeting_start', $meeting),
-        '#weight' => 10,
-      );
-      break;
-    case 'load':
-      if (bbb_is_meeting_type($node->type)) { 
-        $node->bbb = bbb_get_meeting($node->nid);
-      }
-      break;
-    case 'delete':
-      bbb_delete_meeting($node->nid);
-      break;
+  if (!variable_get('bbb_content_type_show_status_' . $node->type, FALSE)) {
+    return;
   }
+
+  $meeting = bbb_get_meeting($node->nid);
+
+  $node->content['bbb_meeting_status'] = array(
+        '#value' => theme('bbb_meeting_status', array('meeting' => $meeting)),
+        '#weight' => 10,
+  );
+  $node->content['bbb_meeting_start'] = array(
+        '#markup' => theme('bbb_meeting_start', $meeting),
+        '#weight' => 10,
+  );
+}
+
+/**
+ * Implement HOOK_node_load
+ */
+
+function bbb_node_load($nodes, $types) {
+  foreach($nodes as $node) {
+    if (bbb_is_meeting_type($nodes[$node->nid]->type)) {
+      $nodes[$node->nid]->bbb = bbb_get_meeting($nodes[$node->nid]->nid);
+    }
+  }
+}
+
+/**
+ * Implement HOOK_node_delete
+ */
+
+function bbb_node_delete($node) {
+  if (!bbb_is_meeting_type($node->type)) {
+    return;
+  }
+  bbb_delete_meeting($node->nid);
 }
 
 /**
@@ -482,29 +522,31 @@ function bbb_get_meeting($nid, $account = NULL, $cached = TRUE) {
 
   if (!isset($meetings[$nid]) || !$cached) {
     $meeting = new stdClass();
-    $meeting = db_fetch_object(db_query("SELECT * FROM {bbb_meetings} WHERE nid = %d", $nid));
+    $result = db_query("SELECT * FROM {bbb_meetings} WHERE nid = :nid", array(':nid' =>$nid));
+    $meeting = $result->fetchObject();
+    //debug($meeting);
 
     if ($meeting) {
-      $meeting->running = bbb_api_isMeetingRunning(array('meetingID' => $meeting->meetingID))->running ? TRUE : FALSE;
+      $meeting->running = bbb_api_isMeetingRunning(array('meetingID' => $meeting->meetingid))->running ? TRUE : FALSE;
       $meeting->url = array(
         'attend' => bbb_api_join(
           array(
             'fullName' => $account->name,
-            'meetingID' => $meeting->meetingID,
-            'password' => $meeting->attendeePW,
+            'meetingID' => $meeting->meetingid,
+            'password' => $meeting->attendeepw,
           )
         ),
         'moderate' => bbb_api_join(
           array(
             'fullName' => $account->name,
-            'meetingID' => $meeting->meetingID,
-            'password' => $meeting->moderatorPW,
+            'meetingID' => $meeting->meetingid,
+            'password' => $meeting->moderatorpw,
           )
         ),
         'end' => bbb_api_end(
           array(
-            'meetingID' => $meeting->meetingID,
-            'password' => $meeting->moderatorPW,
+            'meetingID' => $meeting->meetingid,
+            'password' => $meeting->moderatorpw,
           )
         ),
       );
@@ -587,7 +629,7 @@ function bbb_delete_meeting($nid) {
  */
 function bbb_status($node) {
   $meeting = bbb_get_meeting($node->nid);
-  drupal_json(array('running' => $meeting->running));
+  drupal_json_output(array('running' => $meeting->running));
   die();
 }
 
@@ -604,11 +646,10 @@ function bbb_meeting_attend($node) {
   $meeting = bbb_get_meeting($node->nid);
 
   $params = array(
-    'meetingID' => $meeting->meetingID,
-    'password' => $meeting->moderatorPW,
+    'meetingID' => $meeting->meetingid,
+    'password' => $meeting->moderatorpw,
   );
   $status = bbb_api_getMeetingInfo($params);
-
   if ($status->hasBeenForciblyEnded == 'true') {
     drupal_set_message('The meeting has been terminated and is not available for attending.');
     drupal_goto('node/' . $node->nid);
@@ -621,12 +662,18 @@ function bbb_meeting_attend($node) {
     }
   }
   else {
-    drupal_add_js('var bbb_check_status_url = ' . drupal_to_js(url('node/' . $node->nid . '/meeting/status')), 'inline');
+    drupal_add_js('var bbb_check_status_url = ' . drupal_json_encode(url('node/' . $node->nid . '/meeting/status')), 'inline');
     drupal_add_js(drupal_get_path('module', 'bbb') . '/js/check_status.bbb.js');
     drupal_set_message(t('You signed up for this meeting. Please stay on this page, you will be redirected immediately after the meeting has started.'));
     return node_show($node, NULL);
   }
-  return theme('bbb_meeting', $meeting, $mode, BBB_DISPLAY_HEIGHT, BBB_DISPLAY_WIDTH);
+  $variables = array(
+  	'meeting' => $meeting, 
+  	'mode' => $mode, 
+  	'height' => BBB_DISPLAY_HEIGHT, 
+  	'width' => BBB_DISPLAY_WIDTH
+  );
+  return theme('bbb_meeting', $variables);
 }
 
 /**
@@ -663,7 +710,13 @@ function bbb_meeting_moderate($node) {
   if (BBB_DISPLAY_MODE == 'blank') {
     bbb_redirect($node, $mode);
   }
-  return theme('bbb_meeting', $meeting, $mode, BBB_DISPLAY_HEIGHT, BBB_DISPLAY_WIDTH);
+  $variables = array(
+  	'meeting' => $meeting, 
+  	'mode' => $mode, 
+  	'height' => BBB_DISPLAY_HEIGHT, 
+  	'width' => BBB_DISPLAY_WIDTH
+  );
+  return theme('bbb_meeting', $variables);
 }
 
 /**
@@ -718,12 +771,14 @@ function bbb_redirect($node, $mode = 'attend') {
     case 'attend':
       // Get redirect URL
       $url = parse_url($meeting->url[$mode]);
-      drupal_goto($url['scheme'] . '://' . $url['host']. (isset($url['port']) ? ':'.$url['port'] : '' ) . $url['path'], $url['query']);
+      $fullurl = $url['scheme'] . '://' . $url['host'] . (isset($url['port']) ? ':'.$url['port'] : '' ) . $url['path'] . '?' . $url['query'];
+      header('Location: ' . $fullurl, TRUE, 301);
       break;
     case 'moderate':
       // Get redirect URL
       $url = parse_url($meeting->url[$mode]);
-      drupal_goto($url['scheme'] . '://' . $url['host'] . (isset($url['port']) ? ':'.$url['port'] : '' ) . $url['path'], $url['query']);
+      $fullurl = $url['scheme'] . '://' . $url['host'] . (isset($url['port']) ? ':'.$url['port'] : '' ) . $url['path'] . '?' . $url['query'];
+      header('Location: ' . $fullurl, TRUE, 301);
       break;
   }
 }
@@ -746,8 +801,9 @@ function bbb_create_meeting_id($salt = NULL) {
 /**
  * Theme inline meeting
  */
-function theme_bbb_meeting($meeting, $mode = 'attend', $height = '580px', $width = '100%') {
-  $output .= '<iframe src="' . url('node/' . $meeting->nid . '/redirect/' . $mode, array('absolute' => TRUE)) . '" style="height:' . $height . ';width:' . $width . ';border:0;"></iframe>';
+function theme_bbb_meeting($meeting, $variables = array()) {
+  $url = url('node/' . $meeting['meeting']->nid . '/redirect/' . $meeting['mode'], array('absolute' => TRUE));
+  $output = '<iframe src="' . $url . '" style="height:' . $meeting['height'] . ';width:' . $meeting['width'] . ';border:0;"></iframe>';
   return $output;
 }
 
@@ -755,6 +811,7 @@ function theme_bbb_meeting($meeting, $mode = 'attend', $height = '580px', $width
  * Theme meeting status
  */
 function theme_bbb_meeting_status($meeting) {
+  $meeting = $meeting['meeting'];
   if ($meeting->running) {
     $output = '<div class="bbb-status-is-running">' . t('Status: Meeting is progress.') . '</div>';
   }
@@ -773,10 +830,10 @@ function theme_bbb_block_meeting($meeting) {
     $output .= '<div class="bbb-welcome">' . $meeting->welcome . '</div>';
   }
 
-  $output .= theme('bbb_meeting_status', $meeting);
+  $output .= theme('bbb_meeting_status', array('meeting' => $meeting));
 
-  if ($meeting->dialNumber) {
-    $output .= '<div class="bbb-dial-number">' . t('Phone: @number', array('@number' => $meeting->dialNumber)) . '</div>';
+  if ($meeting->dialnumber) {
+    $output .= '<div class="bbb-dial-number">' . t('Phone: @number', array('@number' => $meeting->dialnumber)) . '</div>';
   }
   if (user_access('attend meetings') || user_access('administer big blue button')) {
     $output .= '<div class="bbb-meeting-attend">' . l('Attend meeting', 'node/' . $meeting->nid . '/meeting/attend') . '</div>';
