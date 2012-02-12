@@ -87,9 +87,11 @@ function bbb_schema() {
 /**
  * Implement hook_install().
  */
+/*
 function bbb_install() {
   drupal_install_schema('bbb');
 }
+*/
 
 /**
  * Implement hook_uninstall().
