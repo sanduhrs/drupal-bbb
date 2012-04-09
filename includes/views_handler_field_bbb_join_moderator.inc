@@ -1,6 +1,4 @@
 <?php
-// $Id: views_handler_field_bbb_join_moderator.inc,v 1.1.2.1 2010/03/15 16:55:31 sanduhrs Exp $
-
 /**
  * @file
  * BigBlueButton - Enables universities and colleges to deliver a high-quality

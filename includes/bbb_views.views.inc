@@ -1,6 +1,4 @@
 <?php
-// $Id: bbb_views.views.inc,v 1.1.2.1 2010/03/15 16:55:31 sanduhrs Exp $
-
 /**
  * @file
  * BigBlueButton - Enables universities and colleges to deliver a high-quality

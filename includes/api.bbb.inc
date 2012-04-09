@@ -244,4 +244,3 @@ function bbb_api_parse_response($xml) {
   }
   return $response;
 }
-?>
