@@ -54,17 +54,12 @@
 * @see http://code.google.com/p/bigbluebutton/wiki/API#Create_Meeting_(create)
 */
 function bbb_api_create($params = array()) {
-  $query_string = bbb_api_generate_querystring($params, 'create');
-  $request = BIGBLUEBUTTON_BASE_URL . BIGBLUEBUTTON_CREATE_URL . '?' . $query_string;
-  $xml = @simplexml_load_file($request);
-  $response = bbb_api_parse_response($xml);
-
-  if ($response->returncode == 'SUCCESS') {
+  $response = bbb_api_call($params, 'create');
+  if (isset($response->returncode) && $response->returncode == 'SUCCESS') {
     unset($response->returncode);
     return $response;
   }
   else {
-    watchdog('bigbluebutton', '%message', array('%message' => $response->message), WATCHDOG_ERROR);
     return FALSE;
   }
 }
@@ -120,18 +115,11 @@ function bbb_api_join($params) {
 *   this ID or token is currently running.
 */
 function bbb_api_isMeetingRunning($params) {
-  $query_string = bbb_api_generate_querystring($params, 'isMeetingRunning');
-  $request = BIGBLUEBUTTON_BASE_URL . BIGBLUEBUTTON_IS_MEETING_RUNNING_URL . '?' . $query_string;
-  $xml = @simplexml_load_file($request);
-  $response = bbb_api_parse_response($xml);
-
+  $response = bbb_api_call($params, 'isMeetingRunning');
   if (isset($response->returncode) && $response->returncode == 'SUCCESS') {
     return drupal_strtoupper($response->running) == 'TRUE' ? TRUE : FALSE;
   }
   else {
-    if(isset($response->returncode)) {
-      watchdog('bigbluebutton', '%message', array('%message' => $response->message), WATCHDOG_ERROR);
-    }
     return FALSE;
   }
 }
@@ -159,17 +147,12 @@ function bbb_api_isMeetingRunning($params) {
 */
 // TODO: this call is not yet implemented.
 function bbb_api_endMeeting($params) {
-  $query_string = bbb_api_generate_querystring($params, 'endMeeting');
-  $request = BIGBLUEBUTTON_BASE_URL . BIGBLUEBUTTON_END_MEETING_URL . '?' . $query_string;
-  $xml = @simplexml_load_file($request);
-  $response = bbb_api_parse_response($xml);
-
-  if ($response->returncode == 'SUCCESS') {
+  $response = bbb_api_call($params, 'endMeeting');
+  if (isset($response->returncode) && $response->returncode == 'SUCCESS') {
     unset($response->returncode);
     return $response;
   }
   else {
-    watchdog('bigbluebutton', '%message', array('%message' => $response->message), WATCHDOG_ERROR);
     return FALSE;
   }
 }
@@ -195,22 +178,59 @@ function bbb_api_endMeeting($params) {
 */
 // TODO: this call is not yet implemented.
 function bbb_api_getMeetingInfo($params) {
-  $query_string = bbb_api_generate_querystring($params, 'getMeetingInfo');
-  $request = BIGBLUEBUTTON_BASE_URL . BIGBLUEBUTTON_GET_MEETING_INFO_URL . '?' . $query_string;
-  $xml = @simplexml_load_file($request);
-  $response = bbb_api_parse_response($xml);
-
-  if ($response->returncode == 'SUCCESS') {
+  $response = bbb_api_call($params, 'getMeetingInfo');
+  if (isset($response->returncode) && $response->returncode == 'SUCCESS') {
     unset($response->returncode);
     return $response;
   }
   else {
-    watchdog('bigbluebutton', '%message', array('%message' => $response->message), WATCHDOG_ERROR);
     return FALSE;
   }
 }
 
 /* Helper functions */
+
+/**
+ * Connect to BBB API and return response.
+ *
+ * @param $params
+ *   Associative array of additional url parameters. See bbb_api_create().
+ * @param $call
+ *   API call name. Possible values:
+ *   - 'create'
+ *   - 'isMeetingRunning'
+ *   - 'endMeeting'
+ *   - 'getMeetingInfo'
+ * @return
+ *   stdClass response or FALSE if BBB service is not available at given url.
+ */
+function bbb_api_call($params, $call) {
+  $query_string = bbb_api_generate_querystring($params, $call);
+  $request = BIGBLUEBUTTON_BASE_URL . '/api/' . $call . '?' . $query_string;
+  $xml = @simplexml_load_file($request);
+  // If XML is available, parse the API response.
+  if (!empty($xml)) {
+    $response = bbb_api_parse_response($xml);
+    // Check if request was successful.
+    if (isset($response->returncode) && $response->returncode == 'SUCCESS') {
+      // Everything is OK.
+    }
+    else {
+      // If errors occured, log them.
+      if (isset($response->message)) {
+        watchdog('bigbluebutton', '%message', array('%message' => $response->message), WATCHDOG_ERROR);
+      }
+      else {
+        watchdog('bigbluebutton', 'BigBlueButton error. API call: %call. Request URL: %url', array('%call' => $call, '%url' => $request), WATCHDOG_ERROR);
+      }
+    }
+    return $response;
+  }
+  else {
+    watchdog('bigbluebutton', 'BigBlueButton service not available. API call: %call. Request URL: %url', array('%call' => $call, '%url' => $request), WATCHDOG_ERROR);
+    return FALSE;
+  }
+}
 
 /**
 * Generate a signed query string

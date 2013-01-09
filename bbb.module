@@ -325,39 +325,39 @@ function bbb_form_alter(&$form, &$form_state, $form_id) {
         '#default_value' => !empty($meeting->welcome) ? $meeting->welcome : variable_get('bbb_content_type_welcome_' . $node_type, ''),
         '#maxlength' => 255,
         '#description' => t('A welcome message that gets displayed on the chat window when the participant joins. You can include keywords (%%CONFNAME%%, %%DIALNUM%%, %%CONFNUM%%) which will be substituted automatically.'),
-        '#attributes' => !empty($meeting->meetingid) ? array('disabled' => 'disabled') : array(),
+        '#attributes' => !empty($meeting->meetingID) ? array('disabled' => 'disabled') : array(),
       );
       $form['bbb']['dialNumber'] = array(
         '#title' => t('Dial number'),
         '#type' => 'textfield',
-        '#default_value' => !empty($meeting->dialnumber) ? $meeting->dialnumber : variable_get('bbb_content_type_dialNumber_' . $node_type, ''),
+        '#default_value' => !empty($meeting->dialNumber) ? $meeting->dialNumber : variable_get('bbb_content_type_dialNumber_' . $node_type, ''),
         '#maxlength' => 32,
         '#description' => t('The dial access number that participants can call in using regular phone.'),
-        '#attributes' => !empty($meeting->meetingid) ? array('disabled' => 'disabled') : array(),
+        '#attributes' => !empty($meeting->meetingID) ? array('disabled' => 'disabled') : array(),
       );
       $form['bbb']['moderatorPW'] = array(
         '#title' => t('Moderator password'),
         '#type' => 'textfield',
-        '#default_value' => !empty($meeting->moderatorpw) ? $meeting->moderatorpw : variable_get('bbb_content_type_moderatorPW_' . $node_type, ''),
+        '#default_value' => !empty($meeting->moderatorPW) ? $meeting->moderatorPW : variable_get('bbb_content_type_moderatorPW_' . $node_type, ''),
         '#maxlength' => 32,
         '#description' => t('The password that will be required for moderators to join the meeting or for certain administrative actions (i.e. ending a meeting).'),
-        '#attributes' => !empty($meeting->meetingid) ? array('disabled' => 'disabled') : array(),
+        '#attributes' => !empty($meeting->meetingID) ? array('disabled' => 'disabled') : array(),
       );
       $form['bbb']['attendeePW'] = array(
         '#title' => t('Attendee password'),
         '#type' => 'textfield',
-        '#default_value' => !empty($meeting->attendeepw) ? $meeting->attendeepw : variable_get('bbb_content_type_attendeePW_' . $node_type, ''),
+        '#default_value' => !empty($meeting->attendeePW) ? $meeting->attendeePW : variable_get('bbb_content_type_attendeePW_' . $node_type, ''),
         '#maxlength' => 32,
         '#description' => t('The password that will be required for attendees to join the meeting.'),
-        '#attributes' => !empty($meeting->meetingid) ? array('disabled' => 'disabled') : array(),
+        '#attributes' => !empty($meeting->meetingID) ? array('disabled' => 'disabled') : array(),
       );
       $form['bbb']['logoutURL'] = array(
         '#title' => t('Logout URL'),
         '#type' => 'textfield',
-        '#default_value' => !empty($meeting->logouturl) ? $meeting->logouturl : variable_get('bbb_content_type_logoutURL_' . $node_type, ''),
+        '#default_value' => !empty($meeting->logoutURL) ? $meeting->logoutURL : variable_get('bbb_content_type_logoutURL_' . $node_type, ''),
         '#maxlength' => 255,
         '#description' => t('The URL that the Big Blue Button client will go to after users click the OK button on the <em>You have been logged out message</em>.'),
-        '#attributes' => !empty($meeting->meetingid) ? array('disabled' => 'disabled') : array(),
+        '#attributes' => !empty($meeting->meetingID) ? array('disabled' => 'disabled') : array(),
       );
     }
   }
@@ -406,10 +406,10 @@ function bbb_node_view($node, $view_mode, $langcode) {
     '#markup' => theme('bbb_meeting_status', array('meeting' => $meeting)),
     '#weight' => 10,
   );
-  $node->content['bbb_meeting_start'] = array(
-    '#markup' => theme('bbb_meeting_start', $meeting),
-    '#weight' => 10,
-  );
+  //$node->content['bbb_meeting_start'] = array(
+    //'#markup' => theme('bbb_meeting_start', array('meeting' => $meeting)),
+    //'#weight' => 10,
+  //);
 }
 
 /**
@@ -539,20 +539,20 @@ function bbb_get_meeting($nid, $account = NULL, $cached = TRUE) {
     //debug($meeting);
 
     if ($meeting) {
-      $meeting->running = bbb_api_isMeetingRunning(array('meetingID' => $meeting->meetingid));
+      $meeting->running = bbb_api_isMeetingRunning(array('meetingID' => $meeting->meetingID));
       $meeting->url = array(
         'attend' => bbb_api_join(
           array(
             'fullName' => property_exists($account,'name') ? $account->name : t('Anonymous'),
-            'meetingID' => $meeting->meetingid,
-            'password' => $meeting->attendeepw,
+            'meetingID' => $meeting->meetingID,
+            'password' => $meeting->attendeePW,
           )
         ),
         'moderate' => bbb_api_join(
           array(
             'fullName' => property_exists($account,'name') ? $account->name : t('Anonymous'),
-            'meetingID' => $meeting->meetingid,
-            'password' => $meeting->moderatorpw,
+            'meetingID' => $meeting->meetingID,
+            'password' => $meeting->moderatorPW,
           )
         ),
       );
@@ -652,11 +652,12 @@ function bbb_meeting_attend($node) {
   $meeting = bbb_get_meeting($node->nid);
 
   $params = array(
-    'meetingID' => $meeting->meetingid,
+    'meetingID' => $meeting->meetingID,
     'password' => $meeting->attendeePW,
   );
+
   $status = bbb_api_getMeetingInfo($params);
-  if (property_exists('hasBeenForciblyEnded',$status) && $status->hasBeenForciblyEnded == 'true') {
+  if ($status && property_exists($status, 'hasBeenForciblyEnded') && $status->hasBeenForciblyEnded == 'true') {
     drupal_set_message('The meeting has been terminated and is not available for attending.');
     drupal_goto('node/' . $node->nid);
   }
@@ -707,13 +708,12 @@ function bbb_meeting_moderate($node) {
   $meeting = bbb_get_meeting($node->nid);
 
   $params = array(
-    'meetingID' => $meeting->meetingid,
+    'meetingID' => $meeting->meetingID,
     'password' => $meeting->moderatorPW,
   );
 
   $status = bbb_api_getMeetingInfo($params);
-
-  if ($status->hasBeenForciblyEnded == 'true') {
+  if ($status && property_exists($status, 'hasBeenForciblyEnded') && $status->hasBeenForciblyEnded == 'true') {
     drupal_set_message('The meeting has been terminated and is not available for reopening.');
     drupal_goto('node/' . $node->nid);
   }
@@ -774,7 +774,7 @@ function bbb_end_confirm_form_submit($form, &$form_state) {
 function bbb_meeting_end($node) {
   $meeting = bbb_get_meeting($node->nid);
   $params = array(
-    'meetingID' => $meeting->meetingid,
+    'meetingID' => $meeting->meetingID,
     'password' => $meeting->moderatorPW,
   );
   $request = bbb_api_end($params);
@@ -832,7 +832,7 @@ function theme_bbb_meeting($meeting, $variables = array()) {
 function theme_bbb_meeting_status($meeting) {
   $meeting = $meeting['meeting'];
   if (isset($meeting->running) && $meeting->running) {
-    $output = '<div class="bbb-status-is-running">' . t('Status: Meeting is progress.') . '</div>';
+    $output = '<div class="bbb-status-is-running">' . t('Status: Meeting is in progress.') . '</div>';
   }
   else {
     $output = '<div class="bbb-status-is-not-running">' . t('Status: Meeting is not running') . '</div>';
@@ -852,8 +852,8 @@ function theme_bbb_block_meeting($meeting) {
 
   $output .= theme('bbb_meeting_status', array('meeting' => $meeting));
 
-  if ($meeting->dialnumber) {
-    $output .= '<div class="bbb-dial-number">' . t('Phone: @number', array('@number' => $meeting->dialnumber)) . '</div>';
+  if ($meeting->dialNumber) {
+    $output .= '<div class="bbb-dial-number">' . t('Phone: @number', array('@number' => $meeting->dialNumber)) . '</div>';
   }
   if (user_access('attend meetings') || user_access('administer big blue button')) {
     $output .= '<div class="bbb-meeting-attend">' . l('Attend meeting', 'node/' . $meeting->nid . '/meeting/attend') . '</div>';
