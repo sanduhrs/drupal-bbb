@@ -108,7 +108,7 @@ function bbb_settings() {
  * Test conection to Big Blue Button
  */
 function bbb_test_connection($url) {
-  $response =  drupal_http_request($url, array(), 'GET', NULL, 3);
+  $response = drupal_http_request($url);
   if ($response->code == 200 || $response->code == 302) {
     return TRUE;
   }
