@@ -23,7 +23,6 @@ define('BIGBLUEBUTTON_GET_MEETING_INFO_URL', '/api/getMeetingInfo');
 define('BIGBLUEBUTTON_CREATE_URL', '/api/create');
 define('BIGBLUEBUTTON_JOIN_URL', '/api/join');
 define('BIGBLUEBUTTON_IS_MEETING_RUNNING_URL', '/api/isMeetingRunning');
-define('BIGBLUEBUTTON_END_MEETING_URL', '/api/endMeeting');
 
 // Security Salt
 // see /var/lib/tomcat6/webapps/bigbluebutton/WEB-INF/classes/bigbluebutton.properties
@@ -740,8 +739,9 @@ function bbb_meeting_moderate($node) {
 /**
  * Terminate confirm form
  */
-function bbb_end_confirm_form($form_state, $node) {
-  return confirm_form(
+function bbb_end_confirm_form($form, &$form_state) {
+    $node = node_load(arg(1));
+    return confirm_form(
     array(
       'nid' => array(
         '#type' => 'value',
@@ -758,9 +758,13 @@ function bbb_end_confirm_form($form_state, $node) {
 
 function bbb_end_confirm_form_submit($form, &$form_state) {
   $node = node_load($form_state['values']['nid']);
-  bbb_meeting_end($node);
+  $request = bbb_meeting_end($node);
 
-  drupal_set_message(t('The meeting has been terminated.'));
+  if ($request === FALSE) {
+    drupal_set_message(t('There was an error terminating the meeting.'), 'error');
+  } else {
+    drupal_set_message(t('The meeting has been terminated.'));
+  }
   drupal_goto('node/' . $node->nid);
 }
 
@@ -776,8 +780,8 @@ function bbb_meeting_end($node) {
     'meetingID' => $meeting->meetingID,
     'password' => $meeting->moderatorPW,
   );
-  $request = bbb_api_end($params);
-  bbb_api_execute_query($request);
+  $request = bbb_api_endMeeting($params);
+  return $request;
 }
 
 /**
@@ -851,14 +855,33 @@ function theme_bbb_block_meeting($meeting) {
 
   $output .= theme('bbb_meeting_status', array('meeting' => $meeting));
 
+  // format links according to settings:
+  $display_mode = variable_get('bbb_display_mode', BIGBLUEBUTTON_DISPLAY_MODE);
+
+  // block links
+  $attend = 'node/' . $meeting->nid . '/meeting/attend';
+  $attend_options = array();
+  $moderate = 'node/' . $meeting->nid . '/meeting/moderate';
+  $moderate_options = array();
+
+  if ($display_mode == 'blank') {
+    // if it opens in a new window, make absolute paths and add some javascript
+    global $base_url;
+    $attend = $base_url . '/' . $attend;
+    $attend_options = array('attributes' => array('onClick' => 'window.open(\'' . $attend . '\');return false', 'html' => TRUE));
+    $moderate = $base_url . '/' . $moderate;
+    $moderate_options = array('attributes' => array('onClick' => 'window.open(\'' . $moderate . '\');return false', 'html' => TRUE));
+    $nolink = 'node/' . $meeting->nid;
+  }
+
   if ($meeting->dialNumber) {
     $output .= '<div class="bbb-dial-number">' . t('Phone: @number', array('@number' => $meeting->dialNumber)) . '</div>';
   }
   if (user_access('attend meetings') || user_access('administer big blue button')) {
-    $output .= '<div class="bbb-meeting-attend">' . l('Attend meeting', 'node/' . $meeting->nid . '/meeting/attend') . '</div>';
+    $output .= '<div class="bbb-meeting-attend">' . l(t('Attend meeting'), ($display_mode == 'blank') ? $nolink : $attend, $attend_options) . '</div>';
   }
   if (user_access('moderate meetings') || user_access('administer big blue button')) {
-    $output .= '<div class="bbb-meeting-moderate">' . l(t('Moderate meeting'), 'node/' . $meeting->nid . '/meeting/moderate') . '</div>';
+    $output .= '<div class="bbb-meeting-moderate">' . l(t('Moderate meeting'), ($display_mode == 'blank') ? $nolink : $moderate, $moderate_options) . '</div>';
   }
   if (user_access('moderate meetings') || user_access('administer big blue button')) {
     $output .= '<div class="bbb-meeting-end">' . l(t('Terminate meeting'), 'node/' . $meeting->nid . '/meeting/end-confirm') . '</div>';

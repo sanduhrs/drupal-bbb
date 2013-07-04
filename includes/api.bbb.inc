@@ -150,7 +150,7 @@ function bbb_api_isMeetingRunning($params) {
  */
 // TODO: this call is not yet implemented.
 function bbb_api_endMeeting($params) {
-  $response = bbb_api_call($params, 'endMeeting');
+  $response = bbb_api_call($params, 'end');
   if (isset($response->returncode) && $response->returncode == 'SUCCESS') {
     unset($response->returncode);
     return $response;

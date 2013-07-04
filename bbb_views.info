@@ -1,4 +1,4 @@
-name = Views Integration
+name = Big Blue Button Views
 description = Provides integration and default views.
 package = Big Blue Button
 dependencies[] = bbb

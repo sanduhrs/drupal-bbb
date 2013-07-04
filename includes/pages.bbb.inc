@@ -18,33 +18,32 @@ function bbb_settings() {
   $form['bbb_server'] = array(
     '#title' => 'Server settings',
     '#type' => 'fieldset',
-    '#description' => t('Adjust the default server settings. Read more about BigBlueButton on !home. See the documentation for !documentation', array('!home' => l(t('BigBlueButton.org'), 'http://bigbluebutton.org/'), '!documentation' => l(t('installation instructions'), 'http://code.google.com/p/bigbluebutton/'))),
+    '#description' => t('Read more about BigBlueButton on !home. See the documentation for !documentation', array('!home' => l(t('BigBlueButton.org'), 'http://bigbluebutton.org/'), '!documentation' => l(t('installation instructions'), 'http://code.google.com/p/bigbluebutton/'))),
   );
   $form['bbb_server']['bbb_base_url'] = array(
     '#title' => t('Base URL'),
     '#type' => 'textfield',
     '#default_value' => variable_get('bbb_base_url', BIGBLUEBUTTON_BASE_URL),
-    '#description' => t('The URL that points to your instance of BigBlueButton.'),
   );
   $form['bbb_server']['bbb_security_salt'] = array(
     '#title' => t('Security Salt'),
     '#type' => 'textfield',
     '#default_value' => variable_get('bbb_security_salt', BIGBLUEBUTTON_SECURITY_SALT),
-    '#description' => t('The predefinde security salt. This is a server side configuration option check the BigBlueButton !documentation', array('!documentation' => l(t('documentation'), 'http://code.google.com/p/bigbluebutton/'))),
+    '#description' => t('The predefined security salt. This is a server side configuration option. Please check the BigBlueButton !documentation.', array('!documentation' => l(t('documentation'), 'http://code.google.com/p/bigbluebutton/'))),
   );
   $form['bbb_client'] = array(
     '#title' => t('Client settings'),
     '#type' => 'fieldset',
   );
   $form['bbb_client']['bbb_display_mode'] = array(
-    '#title' => t('Display mode'),
+    '#title' => t('Block Links'),
     '#type' => 'radios',
     '#options' => array(
       'inline' => t('Display inline'),
-      'blank' => t('Display in a new window'),
+      'blank' => t('Open in a new window'),
     ),
     '#default_value' => variable_get('bbb_display_mode', BIGBLUEBUTTON_DISPLAY_MODE),
-    '#description' => t('Choose wether to display the conference inline or in a new window.'),
+    '#description' => t('How to open links to meetings from the block provided by the Big Blue Button module.'),
   );
   $form['bbb_client']['bbb_display_height'] = array(
     '#title' => t('Height x Width'),
