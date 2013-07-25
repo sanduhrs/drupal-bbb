@@ -233,6 +233,7 @@ function bbb_form_alter(&$form, &$form_state, $form_id) {
       '#type' => 'fieldset',
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
+      '#group' => 'additional_settings',
     );
     /* if (!is_numeric($bbb_api_version)) { */
     /*   $form['bbb']['#value'] = '<p>' . t('Please go to the !page and setup your Big Blue button server.', array('!page' => l(t('administration page'), 'admin/settings/bigbluebutton'))) . '</p>'; */
