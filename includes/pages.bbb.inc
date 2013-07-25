@@ -95,7 +95,7 @@ function bbb_settings() {
     '#value' => t('Test Connection'),
   );
     if (bbb_test_connection($form['bbb_server']['bbb_base_url']['#default_value'])) {
-      drupal_set_message(t('The connection has been established succesfully. Please save your settings now.'));
+      drupal_set_message(t('The connection has been established succesfully. Please save your settings now.'), 'status', FALSE);
     }
     else {
       drupal_set_message(t('The connection could not be established. Please adjust your settings.'), 'error');

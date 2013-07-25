@@ -68,6 +68,13 @@ function bbb_schema() {
         'length' => '255',
         'not null' => TRUE,
       ),
+      'record' => array(
+        'description' => t('A boolean to indicate whether or not the meeting will be recorded.'),
+        'type' => 'int',
+        'size' => 'tiny',
+        'default' => 0,
+        'not null' => TRUE,
+      ),
       'initialized' => array(
         'description' => t('Initialization timestamp'),
         'type' => 'int',
@@ -82,6 +89,22 @@ function bbb_schema() {
     'primary key' => array('nid'),
   );
   return $schema;
+}
+
+/**
+ * Add a column to the bbb_meetings table for the recording option
+ */
+function bbb_update_7100() {
+  if (!db_field_exists('bbb_meetings', 'record')) {
+    $new_field = array(
+      'type' => 'int',
+      'default' => 0,
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'description' => 'A boolean to indicate whether or not this meeting will be recorded.',
+    );
+    db_add_field('bbb_meetings', 'record', $new_field);
+  }
 }
 
 /**
