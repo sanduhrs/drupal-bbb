@@ -131,7 +131,7 @@ function bbb_menu() {
     'access callback' => 'bbb_access_attendee',
     'access arguments' => array(1),
     'type' => MENU_CALLBACK,
-    'file' => 'includes/api-' . BIGBLUEBUTTON_API_VERSION . '.bbb.inc',
+    'file' => 'includes/api.bbb.inc',
   );
   $items['admin/config/media/bigbluebutton'] = array(
     'title' => 'Big Blue Button meetings',
