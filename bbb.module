@@ -330,6 +330,7 @@ function bbb_form_alter(&$form, &$form_state, $form_id) {
           '#collapsible' => TRUE,
           '#collapsed' => TRUE,
           '#tree' => TRUE,
+          '#group' => 'additional_settings',
         );
         $form['bbb']['welcome'] = array(
           '#title' => t('Welcome message'),
