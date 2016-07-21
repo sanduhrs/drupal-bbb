@@ -1,6 +1,0 @@
-name = Views Integration
-description = Provides integration and default views.
-package = Big Blue Button
-dependencies[] = bbb
-dependencies[] = views
-core = 6.x
