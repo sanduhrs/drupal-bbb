@@ -536,7 +536,7 @@ function bbb_init_meeting($node = NULL, $params = array()) {
     'dialNumber'   => $dialNumber  ? $dialNumber  : NULL,
     // TODO: This is limited to 90000 voice bridges and may
     // collide sooner, as rand() may return x twice in a row
-    'voiceBridge'  => rand(10000, 99999),
+    'voiceBridge'  => rand(70000, 79999),
     'logoutURL'    => $logoutURL, //TODO: make absolute, as soon as supported
     'initialized'  => 0,
     'created'      => time(),
