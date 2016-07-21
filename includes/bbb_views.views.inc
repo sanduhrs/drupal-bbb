@@ -125,57 +125,5 @@ function bbb_views_views_data() {
       'notafield' => TRUE,
     ),
   );
-
-  // Group
-  $data['bbb_stats']['table']['group'] = t('Big Blue Button Stats');
-  // Joins
-  $data['bbb_stats']['table']['join']['node'] = array(
-    'left_field' => 'nid',
-    'field' => 'nid',
-    'type' => 'INNER'
-  );
-  $data['bbb_stats']['nid'] = array(
-    'title' => t('Node'),
-    'help' => t('Relation to the node table'),
-    'relationship' => array(
-        'base' => 'node',
-        'field' => 'nid',
-        'handler' => 'views_handler_relationship',
-        'label' => t('Node'),
-    ),
-  );
-  $data['bbb_stats']['table']['join']['users'] = array(
-    'left_field' => 'uid',
-    'field' => 'uid',
-    'type' => 'INNER'
-  );
-  // Mappings
-  $data['bbb_stats']['mode'] = array(
-    'title' => t('Modus'),
-    'help' => t("The user's mode in the meeting."),
-    'field' => array(
-        'handler' => 'views_handler_field',
-    ),
-    'filter' => array(
-        'handler' => 'views_handler_filter_string',
-    ),
-    'sort' => array(
-        'handler' => 'views_handler_sort',
-    ),
-  );
-  $data['bbb_stats']['joined'] = array(
-    'title' => t('Joined'),
-    'help' => t('The timestamp a user joined the meeting.'),
-    'field' => array(
-        'handler' => 'views_handler_field_date',
-    ),
-    'filter' => array(
-        'handler' => 'views_handler_filter_date',
-    ),
-    'sort' => array(
-        'handler' => 'views_handler_sort_date',
-    ),
-  );
-
   return $data;
 }
