@@ -45,6 +45,25 @@ function bbb_views_api() {
 }
 
 /**
+ * Implement hook_views_handlers().
+ */
+function bbb_views_handlers() {
+  return array(
+    'info' => array(
+      'path' => drupal_get_path('module', 'bbb') . '/includes',
+    ),
+    'handlers' => array(
+      'views_handler_field_bbb_join_attendee' => array(
+        'parent' => 'views_handler_field',
+      ),
+      'views_handler_field_bbb_join_moderator' => array(
+        'parent' => 'views_handler_field',
+      ),
+    ),
+  );
+}
+
+/**
  * Implement HOOK_perm().
  */
 function bbb_perm() {
