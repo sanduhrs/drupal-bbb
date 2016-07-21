@@ -34,7 +34,7 @@ define('BIGBLUEBUTTON_DISPLAY_MODE',   variable_get('bbb_display_mode', 'inline'
 define('BIGBLUEBUTTON_DISPLAY_HEIGHT', variable_get('bbb_display_height', '580px'));
 define('BIGBLUEBUTTON_DISPLAY_WIDTH',  variable_get('bbb_display_width', '100%'));
 
-include_once(drupal_get_path('modules', 'bbb') . 'includes/api.bbb.inc');
+include_once(drupal_get_path('module', 'bbb') . '/includes/api.bbb.inc');
 
 /* Drupal Hooks */
 
