@@ -427,7 +427,7 @@ function bbb_node_update($node) {
   if (!bbb_is_meeting_type($node->type)) {
     return;
   }
-  bbb_update_meeting($node, $node->bbb);
+  bbb_update_meeting($node, (array) $node->bbb);
 }
 
 /**
@@ -636,6 +636,7 @@ function bbb_init_meeting($node = NULL, $params = array()) {
     'initialized'  => 0,
     'created'      => time(),
   );
+  $params = (array) $params;
   $params = array_merge($params, $settings);
   return $params;
 }
@@ -644,6 +645,7 @@ function bbb_init_meeting($node = NULL, $params = array()) {
  * Update meeting
  */
 function bbb_update_meeting($node, $params = array()) {
+  $params = (array) $params;
   $params += bbb_init_meeting($node, $params);
   return drupal_write_record('bbb_meetings', $params, 'nid');
 }
