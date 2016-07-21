@@ -509,7 +509,7 @@ function bbb_get_meeting($nid, $account = NULL, $cached = TRUE) {
       );
       // Allow alteration for e.g. access control
       // Just implement hook_bbb_meeting_alter(&$data) {} in your module
-      drupal_alter('bbb_meeting', &$meeting);
+      drupal_alter('bbb_meeting', $meeting);
       // Static cache
       $meetings[$nid] = $meeting;
     }
