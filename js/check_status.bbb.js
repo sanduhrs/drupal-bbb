@@ -1,17 +1,13 @@
-(function($) {
-    Drupal.behaviors.bbbCheckStatus = {
-        attach : function(context, settings) {
-            Drupal.bbbCheckStatus();
-            setInterval("Drupal.bbbCheckStatus();", 5000);
+function bbbCheckStatus(){
+    var url = bbb_check_status_url;
+    $.getJSON(url, function(data) {
+        if (data.running == true) {
+            location.href = location.href + '/meeting/attend';
         }
-    };
-    Drupal.bbbCheckStatus = function() {
-        var url = bbb_check_status_url;
-        $.getJSON(url, function(data) {
-            console.log(data);
-            if (data.running == true) {
-                location.href = location.href + '/meeting/attend';
-            }
-        });
-    };
-})(jQuery);
+    });
+};
+
+$(document).ready(function(){
+    bbbCheckStatus();
+    setInterval("bbbCheckStatus();", 5000);
+});
