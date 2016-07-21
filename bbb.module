@@ -580,12 +580,12 @@ function bbb_get_meeting($nid, $account = NULL, $cached = TRUE) {
       // insert the recording option
       $recording = ($meeting->record == 1) ? array('record' => 'true') : array();
       $attend = array(
-            'fullName' => property_exists($account,'name') ? $account->name : t('Anonymous'),
+            'fullName' => format_username($account),
             'meetingID' => $meeting->meetingID,
             'password' => $meeting->attendeePW,
           );
       $moderate = array(
-            'fullName' => property_exists($account,'name') ? $account->name : t('Anonymous'),
+            'fullName' => format_username($account),
             'meetingID' => $meeting->meetingID,
             'password' => $meeting->moderatorPW,
           );
