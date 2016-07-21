@@ -42,6 +42,6 @@ class views_handler_field_bbb_join_moderator extends views_handler_field {
   function render($values) {
     $text = !empty($this->options['text']) ? $this->options['text'] : t('view');
     $nid = $values->{$this->aliases['nid']};
-    return l($text, "node/$nid/meeting/moderate");
+    return l($text, "node/$nid/join/moderator");
   }
 }
