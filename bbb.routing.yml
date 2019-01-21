@@ -4,29 +4,29 @@ bbb.admin:
     _form: '\Drupal\bbb\Form\SettingsForm'
     _title: 'BigBlueButton meetings'
   requirements:
-    _permission: 'administer big blue button'    
-bbb.node_type.list:
+    _permission: 'administer big blue button'
+entity.bbb_node_type.collection:
   path: '/admin/structure/bigbluebutton'
   defaults:
     _entity_list: bbb_node_type
     _title: 'BigBlueButton content types'
   requirements:
     _permission: 'administer big blue button'
-bbb.node_type.add:
+entity.bbb_node_type.add:
   path: '/admin/structure/bigbluebutton/add'
   defaults:
     _entity_form: bbb_node_type.add
     _title: 'BigBlueButton: Configure a new content type'
   requirements:
     _permission: 'administer big blue button'
-bbb.node_type.edit:
+entity.bbb_node_type.edit_form:
   path: '/admin/structure/bigbluebutton/{bbb_node_type}'
   defaults:
     _entity_form: bbb_node_type.edit
     _title: 'BigBlueButton content type settings'
   requirements:
     _permission: 'administer big blue button'
-bbb.node_type.delete:
+entity.bbb_node_type.delete_form:
   path: '/admin/structure/bigbluebutton/{bbb_node_type}/delete'
   defaults:
     _entity_form: bbb_node_type.delete
@@ -34,45 +34,40 @@ bbb.node_type.delete:
   requirements:
     _permission: 'administer big blue button'
 bbb.meeting.attend:
-  path: 'node/{node}/meeting/attend'
+  path: '/node/{node}/meeting/attend'
   defaults:
-    _content: '\Drupal\bbb\Controller\BBBMeetingTypeController::attend'
+    _controller: '\Drupal\bbb\Controller\BBBMeetingTypeController::attend'
+    _title_callback: '\Drupal\bbb\Controller\BBBMeetingTypeController::getTitle'
   options:
     _access_mode: 'ALL'
   requirements:
     _bbb_meeting_attendee_access_check: 'TRUE'
     _entity_access: 'node.view'
+    node: \d+
 bbb.meeting.moderate:
-  path: 'node/{node}/meeting/moderate'
+  path: '/node/{node}/meeting/moderate'
   defaults:
-    _content: '\Drupal\bbb\Controller\BBBMeetingTypeController::moderate'
+    _controller: '\Drupal\bbb\Controller\BBBMeetingTypeController::moderate'
+    _title_callback: '\Drupal\bbb\Controller\BBBMeetingTypeController::getTitle'
   options:
     _access_mode: 'ALL'
   requirements:
     _bbb_meeting_moderator_access_check: 'TRUE'
     _entity_access: 'node.view'
-bbb.meeting.redirect.attend:
-  path: 'node/{node}/redirect/attend'
+    node: \d+
+bbb.meeting.redirect:
+  path: '/node/{node}/redirect/{mode}'
   defaults:
-    _controller: '\Drupal\bbb\Controller\BBBMeetingTypeController::redirect'
-    mode: 'attend'
-  options:
-    _access_mode: 'ALL'
-  requirements:
-    _bbb_meeting_attendee_access_check: 'TRUE'
-    _entity_access: 'node.view'
-bbb.meeting.redirect.moderate:
-  path: 'node/{node}/redirect/moderate'
-  defaults:
-    _controller: '\Drupal\bbb\Controller\BBBMeetingTypeController::redirect'
-    mode: 'moderate'
+    _controller: '\Drupal\bbb\Controller\BBBMeetingTypeController::attendRedirect'
   options:
     _access_mode: 'ALL'
   requirements:
     _bbb_meeting_moderator_access_check: 'TRUE'
     _entity_access: 'node.view'
+    node: \d+
+    mode: \s+
 bbb.meeting.end_meeting_confirm_form:
-  path: 'node/{node}/meeting/end-confirm'
+  path: '/node/{node}/meeting/end-confirm'
   defaults:
     _form: '\Drupal\bbb\Form\EndMeetingConfirmForm'
   options:
@@ -80,8 +75,9 @@ bbb.meeting.end_meeting_confirm_form:
   requirements:
     _bbb_meeting_moderator_access_check: 'TRUE'
     _entity_access: 'node.view'
+    node: \d+
 bbb.meeting.status:
-  path: 'node/{node}/meeting/status'
+  path: '/node/{node}/meeting/status'
   defaults:
     _controller: '\Drupal\bbb\Controller\BBBMeetingTypeController::status'
   options:
@@ -89,3 +85,4 @@ bbb.meeting.status:
   requirements:
     _bbb_meeting_attendee_access_check: 'TRUE'
     _entity_access: 'node.view'
+    node: \d+

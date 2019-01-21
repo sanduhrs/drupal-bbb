@@ -4,12 +4,12 @@
  * Contains \Drupal\bbb\BBBNodeTypeInterface.
  */
 
-namespace Drupal\bbb;
+namespace Drupal\bbb\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 
 /**
- * Provides an interface defining a Foo Bar entity.
+ * Provides an interface defining a BBBNodeTypeInterface entity.
  */
 interface BBBNodeTypeInterface extends ConfigEntityInterface {
 

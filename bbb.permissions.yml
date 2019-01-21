@@ -1,0 +1,30 @@
+administer big blue button:
+  title: Administer BigBlueButton
+  restrict_access: TRUE,
+  description: Allow administration of BigBlueButton
+
+# TODO
+start meetings:
+  title: Start meeting
+  description: Allow start meeting
+
+# TODO
+start own meetings:
+  title: Start own meeting
+  description: Allow start own meeting
+
+moderate meetings:
+  title: Moderate meetings
+  description: Allow moderation of meetings
+
+moderate own meetings:
+  title: Moderate own meetings
+  description: Allow moderation of own meetings
+
+attend meetings:
+  title: Attend meetings
+  description: Allow following meetings as an attendee
+
+record meetings:
+  title: Record meetings
+  description: Allow the user to record meetings.

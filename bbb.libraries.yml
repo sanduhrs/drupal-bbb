@@ -1,0 +1,6 @@
+check_status:
+  version: VERSION
+  js:
+    js/check_status.bbb.js: {}
+  dependencies:
+    - core/jquery

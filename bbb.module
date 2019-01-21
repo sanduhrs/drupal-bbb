@@ -18,23 +18,20 @@
  */
 
 // API version
-define('BIGBLUEBUTTON_API_VERSION', \Drupal::config('bbb.api')->get('version'));
-define('BIGBLUEBUTTON_GET_MEETING_INFO_URL', '/api/getMeetingInfo');
-define('BIGBLUEBUTTON_CREATE_URL', '/api/create');
-define('BIGBLUEBUTTON_JOIN_URL', '/api/join');
-define('BIGBLUEBUTTON_IS_MEETING_RUNNING_URL', '/api/isMeetingRunning');
+use BigBlueButton\Parameters\CreateMeetingParameters;
+use BigBlueButton\Parameters\IsMeetingRunningParameters;
+use BigBlueButton\Parameters\JoinMeetingParameters;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormState;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
 
-// Security Salt
-// see /var/lib/tomcat6/webapps/bigbluebutton/WEB-INF/classes/bigbluebutton.properties
-define('BIGBLUEBUTTON_SECURITY_SALT', \Drupal::config('bbb.settings')->get('security_salt'));
-define('BIGBLUEBUTTON_BASE_URL', \Drupal::config('bbb.settings')->get('base_url'));
 
-// Define default settings
-define('BIGBLUEBUTTON_DISPLAY_MODE',   \Drupal::config('bbb.settings')->get('display_mode'));
-define('BIGBLUEBUTTON_DISPLAY_HEIGHT', \Drupal::config('bbb.settings')->get('display_height'));
-define('BIGBLUEBUTTON_DISPLAY_WIDTH',  \Drupal::config('bbb.settings')->get('display_width'));
 
-include_once(drupal_get_path('modules', 'bbb') . 'includes/api.bbb.inc');
 //
 ///* Drupal Hooks */
 //
@@ -49,128 +46,96 @@ include_once(drupal_get_path('modules', 'bbb') . 'includes/api.bbb.inc');
 //}
 
 /**
- * Implements HOOK_permission().
- */
-function bbb_permission() {
-  return array(
-    'administer big blue button' => array(
-      'title' => t('Administer BigBlueButton'),
-      'restrict access' => TRUE,
-      'description' => t('Allow administration of BigBlueButton')
-    ),
-  //TODO:
-  //    'start meetings',
-  //    'start own meetings',
-    'moderate meetings' => array(
-      'title' => t('Moderate meetings'),
-      'description' => t('Allow moderation of meetings')
-    ),
-    'moderate own meetings' => array(
-      'title' => t('Moderate own meetings'),
-      'description' => t('Allow moderation of own meetings')
-    ),
-    'attend meetings' => array(
-      'title' => t('Attend meetings'),
-      'description' => t('Allow following meetings as an attendee')
-    ),
-    'record meetings' => array(
-      'title' => t('Record meetings'),
-      'description' => t('Allow the user to record meetings.')
-    )
-  );
-}
-
-/**
  * Implement HOOK_menu().
  */
 function bbb_menu() {
-  $items = array();
+  $items = [];
   $show_local_tasks = \Drupal::config('bbb.settings')->get('local_tasks');
-  $items['node/%node/meeting/attend'] = array(
+  $items['node/%node/meeting/attend'] = [
     'title' => 'Attend Meeting',
     'route_name' => 'bbb.meeting.attend',
     'type' => $show_local_tasks ? MENU_LOCAL_TASK : MENU_CALLBACK,
     'weight' => 2,
-  );
-  $items['node/%node/meeting/moderate'] = array(
+  ];
+  $items['node/%node/meeting/moderate'] = [
     'title' => 'Moderate Meeting',
     'route_name' => 'bbb.meeting.moderate',
     'type' => $show_local_tasks ? MENU_LOCAL_TASK : MENU_CALLBACK,
     'weight' => 2,
-  );
-  $items['node/%node/meeting/end-confirm'] = array(
+  ];
+  $items['node/%node/meeting/end-confirm'] = [
     'title' => 'Terminate Meeting',
     'type' => MENU_CALLBACK,
-  );
-  $items['node/%node/redirect/attend'] = array(
+  ];
+  $items['node/%node/redirect/attend'] = [
     'type' => MENU_CALLBACK,
-  );
-  $items['node/%node/redirect/moderate'] = array(
+  ];
+  $items['node/%node/redirect/moderate'] = [
     'type' => MENU_CALLBACK,
-  );
-  $items['node/%node/meeting/status'] = array(
+  ];
+  $items['node/%node/meeting/status'] = [
     'type' => MENU_CALLBACK,
     //'file' => 'includes/api.bbb.inc',
-  );
-
-  $items['admin/config/media/bigbluebutton'] = array(
-    'title' => 'BigBlueButton meetings',
-    'description' => 'Default server and meeting settings.',
-    'route_name' => 'bbb.admin',
-    'type' => MENU_NORMAL_ITEM,
-  );
-  $items['admin/structure/bigbluebutton'] = array(
-    'title' => 'BigBlueButton content types',
-    'description' => 'Content Types configured to be used with Big Blue Button',
-    'route_name' => 'bbb.node_type.list',
-    'type' => MENU_NORMAL_ITEM,
-  );
+  ];
 
   return $items;
 }
 
 /**
- * Check that the user is allowed to set meetings to record
+ * Implements hook_node_access().
  */
-function bbb_access_record($node) {
-  if (!bbb_is_meeting_type($node->getType())) {
-    return FALSE;
+function bbb_node_access(NodeInterface $node, $op, AccountInterface $account) {
+  /** @var \Drupal\bbb\Service\NodeMeeting $node_meeting */
+  $node_meeting = \Drupal::service('bbb.node_meeting');
+  if (in_array($op, ['create', 'update']) && $node_meeting->isTypeOf($node)) {
+    // No bother to check for node access since this will be on edit/create pages.
+    if ($account->hasPermission('record meetings') || $account->hasPermission('administer big blue button')) {
+      return AccessResult::allowed();
+    }
+    return AccessResult::forbidden();
   }
-  // No bother to check for node access since this will be on edit/create pages.
-  if (user_access('record meetings') || user_access('administer big blue button')) {
-    return TRUE;
-  }
-  return FALSE;
+  return AccessResult::neutral();
 }
 
 /**
- * Implements HOOK_form_alter().
+ * Implements hook_form_alter().
  */
-function bbb_form_alter(&$form, &$form_state, $form_id) {
+function bbb_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   // Node type settings form
   switch ($form_id) {
     case 'node_type_edit_form':
     case 'node_type_add_form':
-      $manager = \Drupal::entityManager();
+      $manager = \Drupal::entityTypeManager();
       if ($form_id == 'node_type_edit_form') {
-        $node_type = node_type_load(arg(4));
-        $id = $node_type->type;
-        $label = $node_type->name;
+        /** @var \Drupal\node\NodeTypeInterface $node_type */
+        $node_type = $form_state->getFormObject()->getEntity();
+        $id = $node_type->id();
+        $label = $node_type->label();
         $entity = entity_load('bbb_node_type', $id);
         if (!$entity) {
-          $entity = entity_create('bbb_node_type', array('id' => $id, 'label' => $label));
+          $entity = entity_create('bbb_node_type', [
+            'id' => $id,
+            'label' => $label,
+          ]);
         }
       }
       else {
-        $entity = entity_create('bbb_node_type', array());
+        $entity = entity_create('bbb_node_type', []);
       }
-      $bbb_form = $manager->getForm($entity, 'edit');
-      $form['bbb'] = $bbb_form['bbb'];
-      $form['#submit'][] = array_pop($bbb_form['#submit']);
-      $validate = array_merge($form['actions']['submit']['#validate'], $bbb_form['actions']['submit']['#validate']);
-      $submit = array_merge($form['actions']['submit']['#submit'], $bbb_form['actions']['submit']['#submit']);
-      $form['actions']['submit']['#validate'] = $validate;
-      $form['actions']['submit']['#submit'] = $submit;
+      $bbb_form = $manager->getFormObject($entity->getEntityTypeId(), 'edit');
+      $bbb_form->setEntity($entity);
+      $form['bbb'] = $bbb_form->buildForm([], new FormState());
+      if (!empty($form['bbb']['#submit'])) {
+        $form['#submit'][] = array_pop($form['bbb']['#submit']);
+      }
+      if (!empty($form['actions']['submit']['#validate']) && !empty($form['bbb']['actions']['submit']['#validate'])) {
+        $form['actions']['submit']['#validate'] = array_merge(  $form['actions']['submit']['#validate'], $form['bbb']['actions']['submit']['#validate']);
+      }
+      if (!empty($form['actions']['submit']['#submit']) && !empty($form['bbb']['actions']['submit']['#submit'])) {
+        $form['actions']['submit']['#submit'] = array_merge($form['actions']['submit']['#submit'], $form['bbb']['actions']['submit']['#submit']);
+        $form['actions']['submit']['#submit'][] = [$bbb_form, 'saveEntity'];
+      }
+      $form['bbb']['actions']['#access'] = FALSE;
       break;
 
     default:
@@ -179,415 +144,231 @@ function bbb_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /**
- * Implements HOOK_form_BASE_FORM_ID_alter().
+ * Implements hook_form_BASE_FORM_ID_alter().
  */
-function bbb_form_node_form_alter(&$form, &$form_state, $form_id) {
-  $node_type = $form['type']['#value']->getEntity()->getType();
-  if (bbb_is_meeting_type($node_type)) {
-    $nid = $form['nid']['#value']->getEntity()->id();
-    if (is_numeric($nid)) {
-      $meeting = bbb_get_meeting($nid);
+function bbb_form_node_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  /** @var \Drupal\bbb\Service\NodeMeeting $node_meeting */
+  $node_meeting = \Drupal::service('bbb.node_meeting');
+  /** @var \Drupal\node\NodeInterface $node */
+  $node = $form_state->getFormObject()->getEntity();
+  if ($node_meeting->isTypeOf($node)) {
+    if ($node->id()) {
+      $meeting = $node_meeting->get($node);
+      /** @var \BigBlueButton\Parameters\CreateMeetingParameters $meeting_info */
+      $meeting_info = $meeting['info'];
     }
-    if (user_access('administer big blue button')) {
-      $form['bbb'] = array(
-        '#title' => t('Meeting settings'),
-        '#type' => 'details',
-        '#description' => t("The following settings may be changed until the meeting first starts."),
-        '#collapsible' => TRUE,
-        '#collapsed' => TRUE,
-        '#tree' => TRUE,
-        '#group' => 'advanced',
-        '#weight' => 100,
-      );
-      $form['bbb']['welcome'] = array(
+    else {
+      $meeting_info = $node_meeting->init($node);
+    }
+    $form['bbb'] = [];
+    $record = [
+      '#title' => t('Record meeting'),
+      '#type' => 'select',
+      '#default_value' => $meeting_info->isRecorded() ,
+      '#options' => [
+        0 => t('Do not record'),
+        1 => t('Record'),
+      ],
+      '#weight' => -1,
+    ];
+    if (\Drupal::currentUser()->hasPermission('administer big blue button')) {
+      $form['bbb']['welcome'] = [
         '#title' => t('Welcome message'),
         '#type' => 'textfield',
-        '#default_value' => !empty($meeting->welcome) ? $meeting->welcome : \Drupal::config("bbb.node_type.$node_type")->get('welcome'),
+        '#default_value' => $meeting_info->getWelcomeMessage(),
         '#maxlength' => 255,
         '#description' => t('A welcome message that gets displayed on the chat window when the participant joins. You can include keywords (%%CONFNAME%%, %%DIALNUM%%, %%CONFNUM%%) which will be substituted automatically.'),
-        '#attributes' => !empty($meeting->meetingID) ? array('disabled' => 'disabled') : array(),
-      );
-      $form['bbb']['dialNumber'] = array(
+      ];
+      $form['bbb']['dialNumber'] = [
         '#title' => t('Dial number'),
         '#type' => 'textfield',
-        '#default_value' => !empty($meeting->dialNumber) ? $meeting->dialNumber : \Drupal::config("bbb.node_type.$node_type")->get('dialNumber'),
+        '#default_value' => $meeting_info->getDialNumber(),
         '#maxlength' => 32,
         '#description' => t('The dial access number that participants can call in using regular phone.'),
-        '#attributes' => !empty($meeting->meetingID) ? array('disabled' => 'disabled') : array(),
-      );
-      $form['bbb']['moderatorPW'] = array(
+      ];
+      $form['bbb']['moderatorPW'] = [
         '#title' => t('Moderator password'),
         '#type' => 'textfield',
-        '#default_value' => !empty($meeting->moderatorPW) ? $meeting->moderatorPW : \Drupal::config("bbb.node_type.$node_type")->get('moderatorPW'),
+        '#default_value' => $meeting_info->getModeratorPassword(),
         '#maxlength' => 32,
         '#description' => t('The password that will be required for moderators to join the meeting or for certain administrative actions (i.e. ending a meeting).'),
-        '#attributes' => !empty($meeting->meetingID) ? array('disabled' => 'disabled') : array(),
-      );
-      $form['bbb']['attendeePW'] = array(
+      ];
+      $form['bbb']['attendeePW'] = [
         '#title' => t('Attendee password'),
         '#type' => 'textfield',
-        '#default_value' => !empty($meeting->attendeePW) ? $meeting->attendeePW : \Drupal::config("bbb.node_type.$node_type")->get('attendeePW'),
+        '#default_value' => $meeting_info->getAttendeePassword(),
         '#maxlength' => 32,
         '#description' => t('The password that will be required for attendees to join the meeting.'),
-        '#attributes' => !empty($meeting->meetingID) ? array('disabled' => 'disabled') : array(),
-      );
-      $form['bbb']['logoutURL'] = array(
+      ];
+      $form['bbb']['logoutURL'] = [
         '#title' => t('Logout URL'),
         '#type' => 'textfield',
-        '#default_value' => !empty($meeting->logoutURL) ? $meeting->logoutURL : \Drupal::config("bbb.node_type.$node_type")->get('logoutURL'),
+        '#default_value' => $meeting_info->getLogoutUrl(),
         '#maxlength' => 255,
         '#description' => t('The URL that the Big Blue Button client will go to after users click the OK button on the <em>You have been logged out message</em>.'),
-        '#attributes' => !empty($meeting->meetingID) ? array('disabled' => 'disabled') : array(),
-      );
-      $form['bbb']['record'] = array(
-        '#title' => t('Record meeting'),
-        '#type' => 'select',
-        '#default_value' => !empty($meeting->record) ? $meeting->record : \Drupal::config("bbb.node_type.$node_type")->get('record'),
-        '#options' => array(
-          0 => t('Do not record'),
-          1 => t('Record'),
-        ),
-        '#attributes' => empty($meeting->initialized) ? array() : array('disabled' => 'disabled'),
-        '#weight' => -1,
-      );
+      ];
+      $form['bbb']['record'] = $record;
     }
-    if (user_access('record meetings') && empty($form['bbb']['record'])) {
+    if (\Drupal::currentUser()->hasPermission('record meetings') && empty($form['bbb']['record'])) {
       // this clause is for users who have the record meetings permission but no permissions to "administer BBB"
-      $form['bbb'] = array(
-        '#title' => t('Recording settings'),
-        '#type' => 'details',
-        '#description' => t("The following settings may be changed until the meeting first starts."),
-        '#collapsible' => TRUE,
-        '#collapsed' => TRUE,
-        '#tree' => TRUE,
-        '#group' => 'advanced',
-        '#weight' => 100,
-      );
-      $form['bbb']['record'] = array(
-        '#title' => t('Record meeting'),
-        '#type' => 'select',
-        '#default_value' => !empty($meeting->record) ? $meeting->record : \Drupal::config("bbb.node_type.$node_type")->get('record'),
-        '#options' => array(
-          0 => t('Do not record'),
-          1 => t('Record'),
-        ),
-        '#attributes' => empty($meeting->initialized) ? array() : array('disabled' => 'disabled'),
-        '#weight' => -1,
-      );
+      $form['bbb']['record'] = $record;
     }
+    // Add details block and show if any of form elements added.
+    $form['bbb'] += [
+      '#access' => !empty($form['bbb']),
+      '#title' => t('Meeting settings'),
+      '#type' => 'details',
+      '#description' => t("The following settings may be changed until the meeting first starts."),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#tree' => TRUE,
+      '#group' => 'advanced',
+      '#weight' => 100,
+    ];
   }
 }
 
 /**
- * Implements HOOK_node_insert().
+ * Implements hook_ENTITY_TYPE_insert().
+ * @see hook_ENTITY_TYPE_insert()
  */
-function bbb_node_insert($node) {
-  if (!bbb_is_meeting_type($node->getType())) {
-    return;
+function bbb_node_insert(EntityInterface $node) {
+  /** @var \Drupal\bbb\Service\NodeMeeting $node_meeting */
+  $node_meeting = \Drupal::service('bbb.node_meeting');
+  /** @var \Drupal\node\NodeInterface $node */
+  if ($node_meeting->isTypeOf($node)) {
+//    $meeting = $node_meeting->init($node);
+    $node_meeting->store($node/*, $meeting*/);
   }
-  bbb_store_meeting($node, (array) $meeting);
 }
 
 /**
- * Implement HOOK_node_update().
+ * Implements hook_ENTITY_TYPE_update().
  */
-function bbb_node_update($node) {
-  if (!bbb_is_meeting_type($node->getType())) {
-    return;
+function bbb_node_update(EntityInterface $node) {
+  /** @var \Drupal\bbb\Service\NodeMeeting $meeting */
+  $meeting = \Drupal::service('bbb.node_meeting');
+  /** @var \Drupal\node\NodeInterface $node */
+  if ($meeting->isTypeOf($node)) {
+    $meeting->update($node, $node->bbb);
   }
-  bbb_update_meeting($node, (array) $node->bbb);
 }
 
 /**
- * Implement HOOK_node_view().
+ * Implements hook_ENTITY_TYPE_view().
  */
-function bbb_node_view(\Drupal\Core\Entity\EntityInterface $node, \Drupal\entity\Entity\EntityDisplay $display, $view_mode, $langcode) {
+function bbb_node_view(array &$build, EntityInterface $node, EntityViewDisplayInterface $display, $view_mode) {
+  /** @var \Drupal\bbb\Service\NodeMeeting $node_meeting */
+  $node_meeting = \Drupal::service('bbb.node_meeting');
+  /** @var \Drupal\node\NodeInterface $node */
   $node_type = $node->getType();
-  if (!bbb_is_meeting_type($node_type)) {
+  if (!$node_meeting->isTypeOf($node)) {
     return;
   }
 
-  $BBBNodeTypeConfig = \Drupal::config("bbb.node_type.$node_type");
+  $BBBNodeTypeConfig = \Drupal::entityTypeManager()->getStorage('bbb_node_type')->load($node->getType());
   // Show meeting status.
   if ($BBBNodeTypeConfig->get('showStatus')) {
-    $meeting = bbb_get_meeting($node->id());
-    $node->content['bbb_meeting_status'] = array(
-      '#markup' => theme('bbb_meeting_status', array('meeting' => $meeting)),
+    $meeting = $node_meeting->get($node);
+    $build['content']['bbb_meeting_status'] = [
+      '#theme' => 'bbb_meeting_status',
+      '#meeting' => $meeting,
       '#weight' => 10,
-    );
-    $node->content['bbb_meeting_record'] = array(
-      '#markup' => theme('bbb_meeting_record', array('meeting' => $meeting)),
+    ];
+    $build['content']['bbb_meeting_record'] = [
+      '#theme' => 'bbb_meeting_record',
+      '#meeting' => $meeting,
       '#weight' => 11,
-    );
+    ];
   }
 
   // Add links to content.
-  global $user;
-  $links = array();
+  $links = [];
   $show = $BBBNodeTypeConfig->get('showLinks');
   if ($view_mode != 'teaser' && $show) {
-    $meeting = bbb_get_meeting($node->id());
-    if (user_access('attend meetings') || user_access('administer big blue button')) {
-      $links['meeting_attend'] = array(
+    $meeting = $node_meeting->get($node);
+    $current_user = \Drupal::currentUser();
+    if ($current_user->hasPermission('attend meetings') || $current_user->hasPermission('administer big blue button')) {
+      $links['meeting_attend'] = [
         'title' => t('Attend meeting'),
         'href' => 'node/' . $node->id() . '/meeting/attend',
-      );
+      ];
     }
-    if ((user_access('moderate meetings') || user_access('administer big blue button')) ||
-        $user->id() == $node->getAuthor()->id() && user_access('moderate own meetings')) {
-      $links['meeting_moderate'] = array(
+    if ((\Drupal::currentUser()->hasPermission('moderate meetings') || $current_user->hasPermission('administer big blue button')) ||
+      $current_user->id() == $node->getAuthor()
+        ->id() && $current_user->hasPermission('moderate own meetings')) {
+      $links['meeting_moderate'] = [
         'title' => t('Moderate meeting'),
         'href' => 'node/' . $node->id() . '/meeting/moderate',
-      );
+      ];
     }
-    if ((user_access('moderate meetings') || user_access('administer big blue button')) ||
-        $user->id() == $node->getAuthor()->id() && user_access('moderate own meetings') &&
-        $meeting->running) {
-      $links['meeting_end'] = array(
+    if (($current_user->hasPermission('moderate meetings') || $current_user->hasPermission('administer big blue button')) ||
+      $current_user->id() == $node->getAuthor()
+        ->id() && $current_user->hasPermission('moderate own meetings') &&
+      $meeting->running) {
+      $links['meeting_end'] = [
         'title' => t('Terminate meeting'),
         'href' => 'node/' . $node->id() . '/meeting/end-confirm',
-      );
+      ];
     }
     if (!empty($links)) {
-      $node->content['links']['bbb'] = array(
+      $build['content']['links']['bbb'] = [
         '#links' => $links,
-      );
+      ];
     }
   }
 }
 
 /**
- * Implement HOOK_node_load().
+ * Implements hook_ENTITY_TYPE_load().
  */
-function bbb_node_load($nodes, $types) {
-  foreach ($nodes as $node) {
-    if (bbb_is_meeting_type($node->getType())) {
-      $node->bbb = bbb_get_meeting($node->id());
+function bbb_node_load($entities) {
+  /** @var \Drupal\bbb\Service\NodeMeeting $meeting */
+  $meeting = \Drupal::service('bbb.node_meeting');
+  /** @var NodeInterface[] $entities */
+  foreach ($entities as $node) {
+    if ($meeting->isTypeOf($node)) {
+      $node->bbb = $meeting->get($node);
     }
   }
 }
 
 /**
- * Implement HOOK_node_delete().
+ * Implements hook_ENTITY_TYPE_delete().
  */
-function bbb_node_delete($node) {
-  if (!bbb_is_meeting_type($node->getType())) {
-    return;
+function bbb_node_delete(EntityInterface $entity) {
+  /** @var \Drupal\bbb\Service\NodeMeeting $meeting */
+  $meeting = \Drupal::service('bbb.node_meeting');
+  /** @var \Drupal\node\NodeInterface $entity */
+  if ($meeting->isTypeOf($entity)) {
+    $meeting->delete($entity);
   }
-  bbb_delete_meeting($node->id());
 }
 
 /**
- * Implement HOOK_theme().
+ * Implements hook_theme().
  */
 function bbb_theme($existing, $type, $theme, $path) {
-  return array(
-    'bbb_meeting' => array(
-      'variables' => array('meeting' => NULL, 'mode' => NULL, 'params' => array()),
-    ),
-    'bbb_meeting_status' => array(
-      'variables' => array('meeting' => NULL),
-    ),
-    'bbb_meeting_record' => array(
-      'variables' => array('meeting' => NULL),
-    ),
-    'bbb_meeting_join_moderator' => array(
-      'variables' => array('meeting' => NULL),
-    ),
-    'bbb_meeting_join_attendee' => array(
-      'variables' => array('meeting' => NULL),
-    ),
-    'bbb_block_meeting' => array(
-      'variables' => array('meeting' => NULL),
-    ),
-  );
-}
-
-/* Helper functions */
-
-/**
- * Check if user is meeting owner
- */
-function bbb_is_meeting_owner($nid, $account = NULL) {
-  if (!$account) {
-    global $user;
-    $account = $user;
-  }
-  $sql = "SELECT COUNT(nid) FROM {bbb_meetings} bm
-           INNER JOIN {node} n ON bm.nid = n.nid
-           WHERE n.uid = :uid
-             AND nid = :nid";
-  $owner = db_query($sql, array(':uid' => $account->uid, ':nid' => $nid));
-  return $owner ? TRUE : FALSE;
-}
-
-/**
- * Check if node type is meeting
- */
-function bbb_is_meeting_type($type) {
-  $BBBNodeTypeConfig = \Drupal::config("bbb.node_type.$type");
-  return $BBBNodeTypeConfig->get('active');
-}
-
-/**
- * Return a meeting object
- */
-function bbb_get_meeting($nid, $account = NULL, $cached = TRUE) {
-  // Simple static cache
-  static $meetings = array();
-  if (!$account) {
-    global $user;
-    $account = $user;
-  }
-
-  if (!isset($meetings[$nid]) || !$cached) {
-    $result = db_query("SELECT * FROM {bbb_meetings} WHERE nid = :nid", array(':nid' => $nid));
-    $meeting = $result->fetchObject();
-    if ($meeting) {
-      $meeting->running = bbb_api_isMeetingRunning(array('meetingID' => $meeting->meetingID));
-      // insert the recording option
-      $recording = ($meeting->record == 1) ? array('record' => 'true') : array();
-      $attend = array(
-        'fullName' => property_exists($account,'name') ? $account->name : t('Anonymous'),
-        'meetingID' => $meeting->meetingID,
-        'password' => $meeting->attendeePW,
-      );
-      $moderate = array(
-          'fullName' => property_exists($account,'name') ? $account->name : t('Anonymous'),
-          'meetingID' => $meeting->meetingID,
-          'password' => $meeting->moderatorPW,
-        );
-      $attend = array_merge($attend, $recording);
-      $moderate = array_merge($moderate, $recording);
-      $meeting->url = array(
-        'attend' => bbb_api_join($attend),
-        'moderate' => bbb_api_join($moderate),
-      );
-      // Allow alteration for e.g. access control
-      // Just implement hook_bbb_meeting_alter(&$data) {} in your module
-      drupal_alter('bbb_meeting', $meeting);
-      // Static cache
-      $meetings[$nid] = $meeting;
-    }
-  }
-  return isset($meetings[$nid]) ? $meetings[$nid] : array();
-}
-
-/**
- * Init meeting
- */
-function bbb_init_meeting($node = NULL, $params = array()) {
-  $node_type = $node->getType();
-  $BBBNodeTypeConfig = \Drupal::config("bbb.node_type.$node_type");
-  $welcome     = $BBBNodeTypeConfig->get('welcome');
-  $dialNumber  = $BBBNodeTypeConfig->get('dialNumber');
-  $moderatorPW = $BBBNodeTypeConfig->get('moderatorPW');
-  $attendeePW  = $BBBNodeTypeConfig->get('attendeePW');
-  $logoutURL   = $BBBNodeTypeConfig->get('logoutURL');
-  $default_rec = $BBBNodeTypeConfig->get('record');
-  if (isset($node->bbb)) {
-    $record = (array) $node->bbb;
-    $record = empty($record['record']) ? $default_rec : 1;
-  }
-
-  $settings = array(
-    'nid'          => $node->id(),
-    'name'         => $node->getTitle(),
-    'meetingID'    => bbb_create_meeting_id($node->id()),
-    'attendeePW'   => !empty($attendeePW) ? $attendeePW : user_password(),
-    'moderatorPW'  => !empty($moderatorPW) ? $moderatorPW : user_password(),
-    'welcome'      => !empty($welcome) ? $welcome : t('Welcome to @title', array('@title' => $node->getTitle())),
-    'dialNumber'   => $dialNumber  ? $dialNumber  : NULL,
-    // TODO: This is limited to 90000 voice bridges and may
-    // collide sooner, as rand() may return x twice in a row
-    'voiceBridge'  => rand(10000, 99999),
-    'logoutURL'    => $logoutURL, //TODO: make absolute, as soon as supported
-    'record'       => $record,
-    'initialized'  => 0,
-    'created'      => time(),
-  );
-  $params = array_merge($params, $settings);
-  return $params;
-}
-
-/**
- * Update meeting
- */
-function bbb_update_meeting($node, $params = array()) {
-  // This is a new record if params is empty.
-  $primary_key = empty($params) ? array() : 'nid';
-  $params += bbb_init_meeting($node, $params);
-  return drupal_write_record('bbb_meetings', $params, $primary_key);
-}
-
-/**
- * Create meeting
- */
-function bbb_create_meeting($node, $params = array()) {
-  $params += bbb_init_meeting($node, $params);
-  // we need to change the "record" param (0 or 1 in the database), to "true" if 1
-
-  if ($params['record'] == 1) {
-    $params['record'] = 'true';
-  } else {
-    unset($params['record']);
-  }
-  if ($data = bbb_api_create($params)) {
-    return $data;
-  }
-  return FALSE;
-}
-
-/**
- * Store meeting
- */
-function bbb_store_meeting($node, $params = array()) {
-  $params += bbb_init_meeting($node, $params);
-  return drupal_write_record('bbb_meetings', $params);
-}
-
-/**
- * Delete meeting
- */
-function bbb_delete_meeting($nid) {
-  return db_query("DELETE FROM {bbb_meetings} WHERE nid = :nid", array(':nid' => $nid));
-}
-
-/* Menu Callbacks */
-
-/**
- * Redirect to big blue button instance; Menu callback
- *
- * @param OBJECT $node
- *   A Drupal node object
- */
-function bbb_meeting_end($node) {
-  $meeting = bbb_get_meeting($node->id());
-  $params = array(
-    'meetingID' => $meeting->meetingID,
-    'password' => $meeting->moderatorPW,
-  );
-  $request = bbb_api_endMeeting($params);
-  return $request;
-}
-
-function bbb_encode_int($string) {
-  $ords = array();
-  for ($i = 0; $i < drupal_strlen($string); $i++) {
-    $ords[] = ord(drupal_substr($string, $i , 1));
-  }
-  return implode($ords);
-}
-
-/**
- * Creating a meeting id.
- *
- * @param null $salt
- * @return string
- */
-function bbb_create_meeting_id($salt = NULL) {
-  $private_key = \Drupal::service('private_key')->get();
-  return bbb_encode_int($private_key) . $salt;
+  return [
+    'bbb_meeting' => [
+      'variables' => ['meeting' => NULL, 'mode' => NULL, 'params' => []],
+    ],
+    'bbb_meeting_status' => [
+      'variables' => ['meeting' => NULL],
+    ],
+    'bbb_meeting_record' => [
+      'variables' => ['meeting' => NULL],
+    ],
+    'bbb_meeting_join_moderator' => [
+      'variables' => ['meeting' => NULL],
+    ],
+    'bbb_meeting_join_attendee' => [
+      'variables' => ['meeting' => NULL],
+    ],
+    'bbb_block_meeting' => [
+      'variables' => ['meeting' => NULL],
+    ],
+  ];
 }
 
 /* Themeables */
@@ -595,80 +376,35 @@ function bbb_create_meeting_id($salt = NULL) {
 /**
  * Theme inline meeting
  */
-function theme_bbb_meeting($meeting, $variables = array()) {
-  $url = url('node/' . $meeting['meeting']->nid . '/redirect/' . $meeting['mode'], array('absolute' => TRUE));
-  $output = '<iframe src="' . $url . '" style="height:' . $meeting['height'] . ';width:' . $meeting['width'] . ';border:0;"></iframe>';
-  return $output;
+function theme_bbb_meeting($meeting) {
+  /** @var \Drupal\bbb\Service\Theme $theme */
+  $theme = \Drupal::service('bbb.theme');
+  return $theme->meeting($meeting);
 }
 
 /**
  * Theme meeting status
  */
 function theme_bbb_meeting_status($meeting) {
-  $meeting = $meeting['meeting'];
-  if (isset($meeting->running) && $meeting->running) {
-    $output = '<div class="bbb-status-is-running">' . t('Status: Meeting is in progress.') . '</div>';
-  }
-  else {
-    $output = '<div class="bbb-status-is-not-running">' . t('Status: Meeting is not running') . '</div>';
-  }
-  return $output;
+  /** @var \Drupal\bbb\Service\Theme $theme */
+  $theme = \Drupal::service('bbb.theme');
+  return $theme->meetingStatus($meeting);
 }
 
 /**
  * Theme meeting recording
  */
 function theme_bbb_meeting_record($meeting) {
-  $meeting = $meeting['meeting'];
-  $output = ''; // Only if the meeting is set to record do we output as such.
-  if (isset($meeting->record) && $meeting->record) {
-    $output = '<div class="bbb-meeting-record">' . t('This meeting is set to be recorded.') . '</div>';
-  }
-  return $output;
+  /** @var \Drupal\bbb\Service\Theme $theme */
+  $theme = \Drupal::service('bbb.theme');
+  return $theme->meetingRecord($meeting);
 }
+
 /**
  * Theme meeting details block
  */
 function theme_bbb_block_meeting($meeting) {
-  $meeting = $meeting['meeting'];
-  $output = '<div class="bbb-meeting-details">';
-  if ($meeting->welcome) {
-    $output .= '<div class="bbb-welcome">' . $meeting->welcome . '</div>';
-  }
-  $output .= theme('bbb_meeting_status', array('meeting' => $meeting));
-
-  // format links according to settings:
-  $display_mode = \Drupal::config('bbb.settings')->get('display_mode');
-
-  // block links
-  $attend = 'node/' . $meeting->nid . '/meeting/attend';
-  $attend_options = array();
-  $moderate = 'node/' . $meeting->nid . '/meeting/moderate';
-  $moderate_options = array();
-
-  if ($display_mode == 'blank') {
-    // if it opens in a new window, make absolute paths and add some javascript
-    global $base_url;
-    $attend = $base_url . '/' . $attend;
-    $attend_options = array('attributes' => array('onClick' => 'window.open(\'' . $attend . '\');return false', 'html' => TRUE));
-    $moderate = $base_url . '/' . $moderate;
-    $moderate_options = array('attributes' => array('onClick' => 'window.open(\'' . $moderate . '\');return false', 'html' => TRUE));
-    $nolink = 'node/' . $meeting->nid;
-  }
-
-  if ($meeting->dialNumber) {
-    $output .= '<div class="bbb-dial-number">' . t('Phone: @number', array('@number' => $meeting->dialNumber)) . '</div>';
-  }
-  if (user_access('attend meetings') || user_access('administer big blue button')) {
-    $output .= '<div class="bbb-meeting-attend">' . l(t('Attend meeting'), ($display_mode == 'blank') ? $nolink : $attend, $attend_options) . '</div>';
-  }
-  if (user_access('moderate meetings') || user_access('administer big blue button')) {
-    $output .= '<div class="bbb-meeting-moderate">' . l(t('Moderate meeting'), ($display_mode == 'blank') ? $nolink : $moderate, $moderate_options) . '</div>';
-  }
-  if (user_access('moderate meetings') || user_access('administer big blue button')) {
-    $output .= '<div class="bbb-meeting-end">' . l(t('Terminate meeting'), 'node/' . $meeting->nid . '/meeting/end-confirm') . '</div>';
-  }
-  $output .= theme('bbb_meeting_record', array('meeting' => $meeting));
-  $output .= '</div>';
-  return $output;
+  /** @var \Drupal\bbb\Service\Theme $theme */
+  $theme = \Drupal::service('bbb.theme');
+  return $theme->blockMeeting($meeting);
 }

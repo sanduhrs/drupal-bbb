@@ -1,0 +1,15 @@
+{
+    "name": "drupal/bbb",
+    "description": "Provides OAuth2 client functionality.",
+    "type": "drupal-module",
+    "homepage": "https://drupal.org/project/oauth2_client",
+    "authors": [],
+    "support": {
+        "issues": "https://drupal.org/project/issues/bbb",
+        "source": "https://cgit.drupalcode.org/bbb"
+    },
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "bigbluebutton/bigbluebutton-api-php": "^2.0"
+    }
+}
