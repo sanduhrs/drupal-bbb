@@ -1,8 +1,8 @@
 {
     "name": "drupal/bbb",
-    "description": "Provides OAuth2 client functionality.",
+    "description": "This module implements the BigBlueButton API",
     "type": "drupal-module",
-    "homepage": "https://drupal.org/project/oauth2_client",
+    "homepage": "https://drupal.org/project/bbb",
     "authors": [],
     "support": {
         "issues": "https://drupal.org/project/issues/bbb",
