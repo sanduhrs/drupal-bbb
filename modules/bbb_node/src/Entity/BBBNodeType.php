@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\bbb\Entity;
+namespace Drupal\bbb_node\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 
@@ -19,11 +19,11 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
  *   ),
  *   handlers = {
  *     "storage" = "Drupal\Core\Config\Entity\ConfigEntityStorage",
- *     "list_builder" = "Drupal\bbb\Controller\BBBNodeTypeListController",
+ *     "list_builder" = "Drupal\bbb_node\Controller\BBBNodeTypeListController",
  *     "form" = {
- *       "add" = "Drupal\bbb\Form\BBBNodeTypeFormController",
- *       "edit" = "Drupal\bbb\Form\BBBNodeTypeFormController",
- *       "delete" = "Drupal\bbb\Form\BBBNodeTypeDeleteForm"
+ *       "add" = "Drupal\bbb_node\Form\BBBNodeTypeFormController",
+ *       "edit" = "Drupal\bbb_node\Form\BBBNodeTypeFormController",
+ *       "delete" = "Drupal\bbb_node\Form\BBBNodeTypeDeleteForm"
  *     }
  *   },
  *   config_prefix = "bbb_node_type",

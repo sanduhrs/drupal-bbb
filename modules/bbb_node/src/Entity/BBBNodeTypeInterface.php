@@ -4,7 +4,7 @@
  * Contains \Drupal\bbb\BBBNodeTypeInterface.
  */
 
-namespace Drupal\bbb\Entity;
+namespace Drupal\bbb_node\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 

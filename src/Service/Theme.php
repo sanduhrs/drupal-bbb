@@ -133,7 +133,7 @@ class Theme {
     }
     $output['status'] = [
       '#theme' => 'bbb_meeting_status',
-      'meeting' => $meeting,
+      '#meeting' => $meeting,
     ];
 
     // Format links according to settings:
@@ -203,7 +203,7 @@ class Theme {
     }
     $output['record'] = [
       '#theme' => 'bbb_meeting_record',
-      'meeting' => $meeting,
+      '#meeting' => $meeting,
     ];
     return $output;
   }

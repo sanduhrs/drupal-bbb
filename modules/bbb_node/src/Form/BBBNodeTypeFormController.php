@@ -1,8 +1,8 @@
 <?php
 
-namespace Drupal\bbb\Form;
+namespace Drupal\bbb_node\Form;
 
-use Drupal\bbb\Service\NodeMeeting;
+use Drupal\bbb_node\Service\NodeMeeting;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeTypeInterface;
@@ -16,14 +16,14 @@ class BBBNodeTypeFormController extends EntityForm {
   /**
    * Node based Meeting API.
    *
-   * @var \Drupal\bbb\Service\NodeMeeting
+   * @var \Drupal\bbb_node\Service\NodeMeeting
    */
   protected $nodeMeeting;
 
   /**
    * BBBNodeTypeFormController constructor.
    *
-   * @param \Drupal\bbb\Service\NodeMeeting $node_meeting
+   * @param \Drupal\bbb_node\Service\NodeMeeting $node_meeting
    *   Node based Meeting API.
    */
   public function __construct(NodeMeeting $node_meeting) {
@@ -34,7 +34,7 @@ class BBBNodeTypeFormController extends EntityForm {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
-    return new static($container->get('bbb.node_meeting'));
+    return new static($container->get('bbb_node.meeting'));
   }
 
   /**
@@ -49,7 +49,7 @@ class BBBNodeTypeFormController extends EntityForm {
    */
   public function form(array $form, FormStateInterface $form_state) {
     $form = parent::form($form, $form_state);
-    /** @var \Drupal\bbb\Entity\BBBNodeTypeInterface $bbbNodeType */
+    /** @var \Drupal\bbb_node\Entity\BBBNodeTypeInterface $bbbNodeType */
     $bbbNodeType = $this->entity;
 
     if ($bbbNodeType->isNew()) {
@@ -158,7 +158,7 @@ class BBBNodeTypeFormController extends EntityForm {
       '#weight' => 9,
     ];
 
-    if ($this->currentUser()->hasPermission('record meetings')) {
+    if ($this->currentUser()->hasPermission('bbb_node record meetings')) {
       $form['bbb']['record'] = [
         '#title' => $this->t('Record new meetings of this type, by default.'),
         '#type' => 'checkbox',
@@ -177,11 +177,11 @@ class BBBNodeTypeFormController extends EntityForm {
    * {@inheritdoc}
    */
   public function save(array $form, FormStateInterface $form_state) {
-//    $this->saveEntity($form, $form_state);
+    $this->saveEntity($form, $form_state);
   }
 
   public function saveEntity(array $form, FormStateInterface $form_state) {
-    /** @var \Drupal\bbb\Entity\BBBNodeTypeInterface $bbbNodeType */
+    /** @var \Drupal\bbb_node\Entity\BBBNodeTypeInterface $bbbNodeType */
     $bbbNodeType = $this->entity;
     $id = $form_state->getValue('type', FALSE);
     $values = $form_state->getValue('bbb');

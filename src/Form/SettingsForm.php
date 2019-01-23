@@ -6,6 +6,7 @@ use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\OpenModalDialogCommand;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 
 /**
  * Provides an administration settings form.
@@ -66,42 +67,7 @@ class SettingsForm extends ConfigFormBase {
       ]),
     ];
 
-    $form['bbb_client'] = [
-      '#title' => $this->t('Client settings'),
-      '#type' => 'fieldset',
-      '#tree' => TRUE,
-      '#attached' => [
-        'library' => ['core/drupal.dialog.ajax', 'bbb/test'],
-      ],
-    ];
-
-    $form['bbb_client']['display_mode'] = [
-      '#title' => $this->t('Block Links'),
-      '#type' => 'radios',
-      '#options' => [
-        'inline' => $this->t('Display inline'),
-        'blank' => $this->t('Open in a new window'),
-      ],
-      '#default_value' => $settings['display_mode'],
-      '#description' => $this->t('How to open links to meetings from the block provided by the Big Blue Button module.'),
-    ];
-    $form['bbb_client']['display_height'] = [
-      '#title' => $this->t('Height x Width'),
-      '#type' => 'textfield',
-      '#default_value' => $settings['display_height'],
-      '#prefix' => '<div class="container-inline">',
-      '#suffix' => 'x',
-      '#size' => 4,
-    ];
-    $form['bbb_client']['display_width'] = [
-      '#type' => 'textfield',
-      '#default_value' => $settings['display_width'],
-      '#suffix' => '</div>',
-      '#size' => 4,
-      '#description' => '<br />' . $this->t('Give dimensions for inline display, e.g. <em>580px</em> x <em>100%</em>.'),
-    ];
-
-    $form['connection'] = [
+    $form['actions']['connection'] = [
       '#type' => 'button',
       '#executes_submit_callback' => FALSE,
       '#value' => $this->t('Test Connection'),
@@ -112,6 +78,10 @@ class SettingsForm extends ConfigFormBase {
         'callback' => '::testConnection',
         'wrapper' => 'modal-command-area',
       ],
+      '#attached' => [
+        'library' => ['core/drupal.dialog.ajax'],
+      ],
+      '#weight' => 30,
     ];
 
     return parent::buildForm($form, $form_state);
@@ -130,9 +100,6 @@ class SettingsForm extends ConfigFormBase {
     $config
       ->set('security_salt', $form_values['bbb_server']['security_salt'])
       ->set('base_url', $form_values['bbb_server']['base_url'])
-      ->set('display_mode', $form_values['bbb_client']['display_mode'])
-      ->set('display_height', $form_values['bbb_client']['display_height'])
-      ->set('display_width', $form_values['bbb_client']['display_width'])
       ->save();
 
     parent::submitForm($form, $form_state);
@@ -170,15 +137,34 @@ class SettingsForm extends ConfigFormBase {
       $content = $this->t('Bad connection');
     }
     else {
+      $link = Url::fromUri(
+        'https://mconf.github.io/api-mate/',
+        [
+          'fragment' => http_build_query([
+            'server' => $form_state->getValue(['bbb_server', 'base_url']),
+            'sharedSecret' => $form_state->getValue([
+              'bbb_server',
+              'security_salt',
+            ]),
+          ]),
+        ])->toString();
       $content = $this->t(
-          "Good connection.<br />Status: <em>@status</em><br />Version: <em>@version</em>",
-          ['@status' => $response->returncode, '@version' => $response->version]
-        );
+        'Good connection.<br />Status: <em>@status</em><br />Version: <em>@version</em><br /><a href="@link" target="_blank">Link to the API-Mate</a>',
+        [
+          '@status' => $response->returncode,
+          '@version' => $response->version,
+          '@link' => $link,
+        ]
+      );
+      $content .= '<br /><iframe src="' . $link . '" style="width: 100%; min-height: 50vh" frameborder="0"></iframe>';
     }
     $commands = new AjaxResponse();
     $commands->addCommand(new OpenModalDialogCommand(
       $this->t('Test connection'),
-      $content
+      $content,
+      [
+        'width' => "90%",
+      ]
     ));
     return $commands;
   }

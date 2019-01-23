@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\bbb\Form;
+namespace Drupal\bbb_node\Form;
 
 use Drupal\Core\Entity\EntityConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;

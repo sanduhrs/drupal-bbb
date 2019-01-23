@@ -1,0 +1,25 @@
+# TODO
+bbb_node start meetings:
+  title: Start meeting
+  description: Allow start meeting
+
+# TODO
+bbb_node start own meetings:
+  title: Start own meeting
+  description: Allow start own meeting
+
+bbb_node moderate meetings:
+  title: Moderate meetings
+  description: Allow moderation of meetings
+
+bbb_node moderate own meetings:
+  title: Moderate own meetings
+  description: Allow moderation of own meetings
+
+bbb_node attend meetings:
+  title: Attend meetings
+  description: Allow following meetings as an attendee
+
+bbb_node record meetings:
+  title: Record meetings
+  description: Allow the user to record meetings.

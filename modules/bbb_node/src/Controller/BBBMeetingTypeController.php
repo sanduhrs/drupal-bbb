@@ -1,9 +1,9 @@
 <?php
 
-namespace Drupal\bbb\Controller;
+namespace Drupal\bbb_node\Controller;
 
 use Drupal\bbb\Service\Api;
-use Drupal\bbb\Service\NodeMeeting;
+use Drupal\bbb_node\Service\NodeMeeting;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
@@ -36,7 +36,7 @@ class BBBMeetingTypeController extends ControllerBase {
   /**
    * Node based Meeting api.
    *
-   * @var \Drupal\bbb\Service\NodeMeeting
+   * @var \Drupal\bbb_node\Service\NodeMeeting
    */
   protected $nodeMeeting;
 
@@ -59,7 +59,7 @@ class BBBMeetingTypeController extends ControllerBase {
       $container->get('entity_type.manager'),
       $container->get('messenger'),
       $container->get('bbb.api'),
-      $container->get('bbb.node_meeting'),
+      $container->get('bbb_node.meeting'),
       $container->get('config.factory')
 
     );
@@ -71,7 +71,7 @@ class BBBMeetingTypeController extends ControllerBase {
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    * @param \Drupal\bbb\Service\Api $api
-   * @param \Drupal\bbb\Service\NodeMeeting $node_meeting
+   * @param \Drupal\bbb_node\Service\NodeMeeting $node_meeting
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
@@ -88,7 +88,7 @@ class BBBMeetingTypeController extends ControllerBase {
     $this->messenger = $messenger;
     $this->api = $api;
     $this->nodeMeeting = $node_meeting;
-    $this->config = $config_factory->get('bbb.settings');
+    $this->config = $config_factory->get('bbb_node.settings');
 
     $this->nodeStorage = $this->entityTypeManager->getStorage('node');
   }
@@ -133,7 +133,7 @@ class BBBMeetingTypeController extends ControllerBase {
         $this->messenger->addStatus($this->t('You signed up for this meeting. Please stay on this page, you will be redirected immediately after the meeting has started.'));
         $render = $this->entityTypeManager->getViewBuilder('node')->view($node);
         $render['#attached']['libraries'][] = 'bbb/check_status';
-        $render['#attached']['drupalSettings']['bbb']['check_status']['check_status_url'] = Url::fromRoute('bbb.meeting.status', ['node' => $node->id()]);
+        $render['#attached']['drupalSettings']['bbb']['check_status']['check_status_url'] = Url::fromRoute('bbb_node.meeting.end_status', ['node' => $node->id()]);
         return $render;
       }
       else {
@@ -150,10 +150,10 @@ class BBBMeetingTypeController extends ControllerBase {
     }
     return [
       '#theme' => 'bbb_meeting',
-      'meeting' => $meeting,
-      'mode' => $mode,
-      'height' => $this->getDisplayHeight(),
-      'width' => $this->getDisplayWidth(),
+      '#meeting' => $meeting,
+      '#mode' => $mode,
+      '#height' => $this->getDisplayHeight(),
+      '#width' => $this->getDisplayWidth(),
     ];
 
   }
@@ -174,6 +174,7 @@ class BBBMeetingTypeController extends ControllerBase {
     }
     $mode = 'moderate';
     $meeting = $this->nodeMeeting->get($node);
+    $meeting_info = $meeting['info'];
 
     $params = [
       'meetingID' => $meeting->meetingID,
@@ -195,14 +196,14 @@ class BBBMeetingTypeController extends ControllerBase {
       }
     }
     if ($this->getDisplayMode() === 'blank') {
-      $this->redirect($node, $mode);
+      $this->attendRedirect($node, $mode);
     }
     return [
       '#theme' => 'bbb_meeting',
-      'meeting' => $meeting,
-      'mode' => $mode,
-      'height' => $this->getDisplayHeight(),
-      'width' => $this->getDisplayWidth(),
+      '#meeting' => $meeting,
+      '#mode' => $mode,
+      '#height' => $this->getDisplayHeight(),
+      '#width' => $this->getDisplayWidth(),
     ];
 
   }

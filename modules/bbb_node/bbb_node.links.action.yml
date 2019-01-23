@@ -1,0 +1,11 @@
+bbb_node.type_add:
+  route_name: entity.bbb_node_type.add
+  title: 'Add BigBlueButton content type'
+  appears_on:
+    - entity.bbb_node_type.collection
+
+#bbb.meeting.end:
+#  route_name: entity.bbb_node_type.add
+#  title: 'Add BigBlueButton content type'
+#  appears_on:
+#    - entity.bbb_node_type.collection

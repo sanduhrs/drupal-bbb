@@ -1,0 +1,21 @@
+services:
+  bbb_node.meeting.attendee_access_check:
+    class: Drupal\bbb_node\Access\BBBMeetingAttendeeAccessCheck
+    arguments:
+      - '@bbb_node.meeting'
+      - '@entity_type.manager'
+    tags:
+      - { name: access_check, applies_to: _bbb_meeting_attendee_access_check}
+  bbb_node.meeting.moderator_access_check:
+    class: Drupal\bbb_node\Access\BBBMeetingModeratorAccessCheck
+    arguments:
+      - '@bbb_node.meeting'
+      - '@entity_type.manager'
+    tags:
+      - { name: access_check, applies_to: _bbb_meeting_moderator_access_check }
+  bbb_node.meeting:
+    class: Drupal\bbb_node\Service\NodeMeeting
+    arguments:
+      - '@current_user'
+      - '@entity_type.manager'
+      - '@bbb.meeting'

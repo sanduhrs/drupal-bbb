@@ -1,0 +1,9 @@
+bbb_node.meeting.end:
+  title: 'End meeting'
+  route_name: bbb_node.meeting.end_meeting_confirm_form
+  base_route: entity.node.canonical
+bbb_node.settings:
+  title: 'Node meeting settings'
+  route_name: bbb_node.admin
+  base_route: bbb.admin
+  weight: 20

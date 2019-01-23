@@ -1,0 +1,10 @@
+name: Big Blue Button Node
+type: module
+description: Node integration for Big Blue Button service.
+package: Big Blue Button
+core: 8.x
+dependencies:
+  - bbb:bbb
+  - drupal:node
+
+configure: bbb_node.admin

@@ -1,11 +1,5 @@
-entity.bbb_node_type.collection:
-  title: 'BigBlueButton content types'
-  parent: system.admin_structure
-  description: 'Content Types configured to be used with Big Blue Button.'
-  route_name: entity.bbb_node_type.collection
-
 bbb.settings:
-  title: 'BigBlueButton meetings'
-  description: 'Default server and meeting settings.'
+  title: 'BigBlueButton'
+  description: 'Default server settings.'
   parent: system.admin_config_media
   route_name: bbb.admin

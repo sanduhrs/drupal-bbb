@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\bbb\Controller;
+namespace Drupal\bbb_node\Controller;
 
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;

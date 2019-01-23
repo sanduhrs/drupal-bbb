@@ -1,35 +1,23 @@
 services:
-  bbb.meeting.attendee_access_check:
-    class: Drupal\bbb\Access\BBBMeetingAttendeeAccessCheck
-    arguments:
-      - '@bbb.node_meeting'
-    tags:
-      - { name: access_check }
-  bbb.meeting.moderator_access_check:
-    class: Drupal\bbb\Access\BBBMeetingModeratorAccessCheck
-    arguments:
-      - '@bbb.node_meeting'
-    tags:
-      - { name: access_check }
+  bbb:
+    class: Drupal\bbb\Service\BigBlueButton
+    arguments: ['@config.factory']
   bbb.api:
     class: Drupal\bbb\Service\Api
     arguments:
       - '@bbb'
-  bbb:
-    class: Drupal\bbb\Service\BigBlueButton
-#    arguments: ['@current_user']
   bbb.theme:
     class: Drupal\bbb\Service\Theme
     arguments:
       - '@config.factory'
       - '@current_user'
-  bbb.node_meeting:
-    class: Drupal\bbb\Service\NodeMeeting
+  bbb.meeting:
+    class: Drupal\bbb\Service\Meeting
     arguments:
-      - '@current_user'
-      - '@entity_type.manager'
       - '@bbb.api'
       - '@private_key'
       - '@module_handler'
       - '@keyvalue'
+      - '@entity_type.manager'
+      - '@current_user'
       - '@logger.factory'

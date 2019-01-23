@@ -1,0 +1,17 @@
+{#
+/**
+* @file
+* Default theme implementation to display an iframe field.
+*
+* Available variables:
+* - src: Url being loaded into the iframe.
+* - attributes: An array of HTML attributes, intended to be added to the
+*   iframe tag.
+*/
+#}
+<iframe {{ attributes }}>
+  {% trans %}
+    Your browser does not support iframes, but you can use the following link:
+    <a href="{{ src }}">Link</a>
+  {% endtrans %}
+</iframe>

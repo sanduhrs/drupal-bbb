@@ -1,5 +1,0 @@
-bbb.node_type.add:
-  route_name: bbb.node_type.add
-  title: 'Configure a new Content Type'
-  appears_on:
-    - entity.bbb_node_type.collection

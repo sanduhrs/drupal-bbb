@@ -1,8 +1,8 @@
 <?php
 
-namespace Drupal\bbb\Plugin\Block;
+namespace Drupal\bbb_node\Plugin\Block;
 
-use Drupal\bbb\Service\NodeMeeting;
+use Drupal\bbb_node\Service\NodeMeeting;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Provides a "BBB Meeting details" block.
  *
  * @Block(
- *   id = "bbb_login_meeting",
+ *   id = "bbb_node_login_meeting",
  *   admin_label = @Translation("BBB Meeting Details")
  * )
  */
@@ -30,7 +30,7 @@ class BBBLoginMeeting extends BlockBase implements ContainerFactoryPluginInterfa
   /**
    * Node based Meeting API.
    *
-   * @var \Drupal\bbb\Service\NodeMeeting
+   * @var \Drupal\bbb_node\Service\NodeMeeting
    */
   protected $nodeMeeting;
 
@@ -55,7 +55,7 @@ class BBBLoginMeeting extends BlockBase implements ContainerFactoryPluginInterfa
       $plugin_id,
       $plugin_definition,
       $container->get('current_route_match'),
-      $container->get('bbb.node_meeting')
+      $container->get('bbb_node.meeting')
     );
   }
 
@@ -70,7 +70,7 @@ class BBBLoginMeeting extends BlockBase implements ContainerFactoryPluginInterfa
    *   The plugin implementation definition.
    * @param \Drupal\Core\Routing\ResettableStackedRouteMatchInterface $route_match
    *   Current route match service.
-   * @param \Drupal\bbb\Service\NodeMeeting $node_meeting
+   * @param \Drupal\bbb_node\Service\NodeMeeting $node_meeting
    *   Node based Meetings API.
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, ResettableStackedRouteMatchInterface $route_match, NodeMeeting $node_meeting) {

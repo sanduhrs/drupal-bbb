@@ -1,8 +1,8 @@
 <?php
 
-namespace Drupal\bbb\Form;
+namespace Drupal\bbb_node\Form;
 
-use Drupal\bbb\Service\NodeMeeting;
+use Drupal\bbb_node\Service\NodeMeeting;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
@@ -17,13 +17,13 @@ class EndMeetingConfirmForm extends ConfirmFormBase {
   /**
    * Node based Meeting api.
    *
-   * @var \Drupal\bbb\Service\NodeMeeting
+   * @var \Drupal\bbb_node\Service\NodeMeeting
    */
   protected $nodeMeeting;
 
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('bbb.node_meeting')
+      $container->get('bbb_node.meeting')
     );
   }
 
@@ -37,19 +37,6 @@ class EndMeetingConfirmForm extends ConfirmFormBase {
   public function getFormID() {
     return 'bbb_end_meeting_confirm_form';
   }
-
-  /**
-   * {@inheritdoc}
-   * Terminate confirm form
-   */
-//  public function buildForm(array $form, FormStateInterface $form_state) {
-//
-//      t('Terminate'),
-//      t('Cancel')
-//    );
-//
-//    return $form;
-//  }
 
   /**
    * {@inheritdoc}
