@@ -1,0 +1,8 @@
+<?php
+
+/**
+ * Implements hook_uninstall().
+ */
+function bbb_uninstall() {
+  \Drupal::keyValue('bbb_meetings')->deleteAll();
+}
