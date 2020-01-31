@@ -89,9 +89,18 @@ function bbb_node_form_alter(&$form, FormStateInterface $form_state, $form_id) {
     case 'node_type_add_form':
       $manager = \Drupal::entityTypeManager();
       $storage = $manager->getStorage('bbb_node_type');
+
+      /** @var \Drupal\node\NodeTypeInterface $node_type */
+      $node_type = $form_state->getFormObject()->getEntity();
+
+      /** @var \Drupal\bbb_node\Service\NodeMeeting $node_meeting */
+      $node_meeting = \Drupal::service('bbb_node.meeting');
+
+      if (!$node_meeting->isTypeOf($node_type)) {
+        return;
+      }
+
       if ($form_id == 'node_type_edit_form') {
-        /** @var \Drupal\node\NodeTypeInterface $node_type */
-        $node_type = $form_state->getFormObject()->getEntity();
         $id = $node_type->id();
         $label = $node_type->label();
         $entity = $storage->load($id);
