@@ -228,7 +228,7 @@ function bbb_node_node_insert(EntityInterface $node) {
     $params = new CreateMeetingParameters($node->uuid(), $node->getTitle());
     \Drupal::moduleHandler()->alter('bbb_node_create', $params, $node);
     $meeting = $node_meeting->create($node, $params);
-    $node_meeting->store($node, $meeting);
+    $node_meeting->store($node, $params);
   }
 }
 

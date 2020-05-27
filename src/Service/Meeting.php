@@ -129,6 +129,7 @@ class Meeting implements MeetingInterface {
       $meeting_created = $this->meetingCollection->get($id);
       if ($meeting_created) {
         $meeting_info = $this->api->getMeetingInfo(new GetMeetingInfoParameters($meeting_created->getMeetingId(), $meeting_created->getModeratorPassword()));
+        if ($meeting_info) {
         $url = [
           'attend' => $this->api->joinMeeting(
             new JoinMeetingParameters(
@@ -156,6 +157,7 @@ class Meeting implements MeetingInterface {
         // Static cache.
         self::$meetings[$id] = $meeting;
       }
+    }
     }
     return isset(self::$meetings[$id]) ? self::$meetings[$id] : [];
   }

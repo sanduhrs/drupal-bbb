@@ -204,7 +204,7 @@ class NodeMeeting {
   /**
    * Store meeting.
    */
-  public function store($node, \BigBlueButton\Core\Meeting $params = NULL) {
+  public function store($node, CreateMeetingParameters $params) {
     return $this->update($node, $params);
   }
 

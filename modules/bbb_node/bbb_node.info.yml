@@ -7,4 +7,4 @@ dependencies:
   - bbb:bbb
   - drupal:node
 
-configure: bbb_node.admin
+configure: entity.bbb_node_type.collection
